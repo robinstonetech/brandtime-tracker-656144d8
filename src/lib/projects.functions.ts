@@ -296,10 +296,24 @@ export const saveCategory = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => categorySchema.parse(data))
   .handler(async ({ data, context }) => {
     await requireOrgRole(context.supabase, context.userId, data.organizationId, "manager");
+
+    const projectId = data.projectId ?? null;
+    if (projectId) {
+      const { data: project, error: projectError } = await context.supabase
+        .from("projects")
+        .select("id")
+        .eq("id", projectId)
+        .eq("organization_id", data.organizationId)
+        .maybeSingle();
+      if (projectError) throw new Error(projectError.message);
+      if (!project) throw new Error("Project not found in this organization");
+    }
+
     const payload = {
       organization_id: data.organizationId,
       name: data.name,
       is_billable: data.isBillable,
+      project_id: projectId,
     };
 
     if (data.id) {
