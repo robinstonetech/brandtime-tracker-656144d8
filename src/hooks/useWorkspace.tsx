@@ -26,8 +26,23 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const query = useQuery({
     queryKey: ["workspace"],
-    queryFn: () => fetchWorkspace(),
+    queryFn: async (): Promise<Workspace> => {
+      try {
+        return await fetchWorkspace();
+      } catch (cause) {
+        // An expired/missing session makes the protected server fn throw a raw
+        // 401 Response, which otherwise surfaces as "Error: [object Response]".
+        if (cause instanceof Response) {
+          if (cause.status === 401 || cause.status === 403) {
+            return { profile: null, memberships: [] };
+          }
+          throw new Error(`Workspace request failed (${cause.status})`);
+        }
+        throw cause;
+      }
+    },
     enabled: isAuthenticated,
+    retry: false,
     staleTime: 60_000,
   });
 
