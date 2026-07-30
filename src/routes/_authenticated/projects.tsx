@@ -52,6 +52,10 @@ import {
   type ProjectRow,
 } from "@/lib/projects.functions";
 
+const ALL_PROJECTS = "__all__";
+
+
+
 export const Route = createFileRoute("/_authenticated/projects")({
   head: () => ({
     meta: [
