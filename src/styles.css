@@ -42,6 +42,8 @@
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
   --color-cream: var(--cream);
+  --color-moss: var(--moss);
+  --color-moss-foreground: var(--moss-foreground);
   --color-sage: var(--sage);
   --color-forest: var(--forest);
   --color-bark: var(--bark);
@@ -91,6 +93,8 @@
   --ring: oklch(0.55 0.08 150);
 
   --cream: oklch(0.972 0.012 95);
+  --moss: oklch(0.47 0.075 138);
+  --moss-foreground: oklch(0.98 0.01 95);
   --sage: oklch(0.78 0.05 145);
   --forest: oklch(0.34 0.06 150);
   --bark: oklch(0.45 0.06 60);
@@ -139,6 +143,8 @@
   --sidebar-accent-foreground: oklch(0.95 0.015 95);
   --sidebar-border: oklch(0.32 0.02 145);
   --sidebar-ring: oklch(0.7 0.06 145);
+  --moss: oklch(0.55 0.08 138);
+  --moss-foreground: oklch(0.98 0.01 95);
 }
 
 @layer base {
