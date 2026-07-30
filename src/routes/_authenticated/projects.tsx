@@ -52,7 +52,6 @@ import {
   type ProjectRow,
 } from "@/lib/projects.functions";
 
-const ALL_PROJECTS = "__all__";
 
 
 
@@ -360,7 +359,7 @@ function ProjectsPage() {
                           <TableCell className="font-medium">{category.name}</TableCell>
                           <TableCell>
                             {category.projectName ?? (
-                              <span className="text-muted-foreground">All projects</span>
+                              <span className="text-muted-foreground">Unassigned</span>
                             )}
                           </TableCell>
                           <TableCell>{category.isBillable ? "Yes" : "No"}</TableCell>
@@ -704,26 +703,28 @@ function CategoryDialog({
   const save = useServerFn(saveCategory);
   const [name, setName] = useState("");
   const [isBillable, setIsBillable] = useState(true);
-  const [projectId, setProjectId] = useState(ALL_PROJECTS);
+  const [projectId, setProjectId] = useState("");
 
   useEffect(() => {
     if (!value) return;
     setName(category?.name ?? "");
     setIsBillable(category?.isBillable ?? true);
-    setProjectId(category?.projectId ?? ALL_PROJECTS);
+    setProjectId(category?.projectId ?? "");
   }, [value, category]);
 
   const mutation = useMutation({
-    mutationFn: () =>
-      save({
+    mutationFn: () => {
+      if (!projectId) throw new Error("Select a project for this category");
+      return save({
         data: {
           organizationId,
           id: category?.id ?? null,
           name: name.trim(),
           isBillable,
-          projectId: projectId === ALL_PROJECTS ? null : projectId,
+          projectId,
         },
-      }),
+      });
+    },
     onSuccess: () => {
       onSaved();
       toast.success(category ? "Category updated" : "Category created");
@@ -748,10 +749,9 @@ function CategoryDialog({
             <Label>Project</Label>
             <Select value={projectId} onValueChange={setProjectId}>
               <SelectTrigger>
-                <SelectValue placeholder="All projects" />
+                <SelectValue placeholder="Select a project" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL_PROJECTS}>All projects</SelectItem>
                 {projects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
                     {project.name}

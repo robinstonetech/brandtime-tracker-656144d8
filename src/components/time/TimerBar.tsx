@@ -37,12 +37,11 @@ export function TimerBar({ organizationId, timer, projects, categories, disabled
   const stop = useServerFn(stopTimer);
   const cancel = useServerFn(cancelTimer);
 
-  // Categories either belong to the selected project or apply to every project.
-  const availableCategories = categories.filter(
-    (category) =>
-      category.projectId == null ||
-      (projectId !== NONE && category.projectId === projectId),
-  );
+  // Categories are project-specific.
+  const availableCategories =
+    projectId === NONE
+      ? []
+      : categories.filter((category) => category.projectId === projectId);
 
   useEffect(() => {
     if (categoryId === NONE) return;
