@@ -39,6 +39,7 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 import {
   getTeam,
   inviteTeammate,
+  resendInvitation,
   revokeInvitation,
   setMemberActive,
   updateMemberRole,
