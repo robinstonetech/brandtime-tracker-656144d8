@@ -3,6 +3,14 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireOrgRole } from "@/lib/org-access";
+import {
+  entrySchema,
+  idSchema,
+  orgSchema,
+  startTimerSchema,
+  updateEntrySchema,
+  weekSchema,
+} from "@/lib/schemas";
 import { weekEndISO } from "@/lib/time-utils";
 
 export type TimeEntry = {
@@ -45,9 +53,6 @@ export type TimerState = {
 } | null;
 
 export type PickerOption = { id: string; name: string; isBillable?: boolean };
-
-const orgSchema = z.object({ organizationId: z.string().uuid() });
-const weekSchema = orgSchema.extend({ weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) });
 
 /** Projects and categories available to the signed-in user for time entry. */
 export const getTimeOptions = createServerFn({ method: "GET" })
@@ -183,12 +188,6 @@ export const getRunningTimer = createServerFn({ method: "GET" })
     };
   });
 
-const startTimerSchema = orgSchema.extend({
-  projectId: z.string().uuid().nullable().optional(),
-  categoryId: z.string().uuid().nullable().optional(),
-  description: z.string().trim().max(500).nullable().optional(),
-});
-
 /** Starts a timer. Only one may run per user, so any existing one is replaced. */
 export const startTimer = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -271,15 +270,6 @@ export const cancelTimer = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-const entrySchema = orgSchema.extend({
-  entryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  durationMinutes: z.number().int().min(1).max(1440),
-  projectId: z.string().uuid().nullable().optional(),
-  categoryId: z.string().uuid().nullable().optional(),
-  description: z.string().trim().max(500).nullable().optional(),
-  isBillable: z.boolean().default(true),
-});
-
 export const createTimeEntry = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => entrySchema.parse(data))
@@ -300,8 +290,6 @@ export const createTimeEntry = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
-
-const updateEntrySchema = entrySchema.extend({ id: z.string().uuid() });
 
 export const updateTimeEntry = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -328,7 +316,7 @@ export const updateTimeEntry = createServerFn({ method: "POST" })
 
 export const deleteTimeEntry = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
+  .inputValidator((data: unknown) => idSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("time_entries")

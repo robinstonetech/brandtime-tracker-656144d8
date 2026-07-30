@@ -3,6 +3,14 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireOrgRole } from "@/lib/org-access";
+import {
+  categorySchema,
+  clientSchema,
+  orgIdActiveSchema,
+  orgIdArchivedSchema,
+  orgSchema,
+  projectSchema,
+} from "@/lib/schemas";
 
 export type ProjectRow = {
   id: string;
@@ -35,8 +43,6 @@ export type CategoryRow = {
 };
 
 export type OrgPerson = { userId: string; name: string; email: string; role: string };
-
-const orgSchema = z.object({ organizationId: z.string().uuid() });
 
 export const getProjectsPage = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -141,20 +147,6 @@ export const getProjectsPage = createServerFn({ method: "GET" })
     };
   });
 
-const projectSchema = orgSchema.extend({
-  id: z.string().uuid().nullable().optional(),
-  name: z.string().trim().min(2).max(120),
-  code: z.string().trim().max(24).nullable().optional(),
-  description: z.string().trim().max(1000).nullable().optional(),
-  clientId: z.string().uuid().nullable().optional(),
-  status: z.enum(["active", "on_hold", "archived"]).default("active"),
-  isBillable: z.boolean().default(true),
-  defaultHourlyRate: z.number().min(0).max(100000).nullable().optional(),
-  startsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-  endsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-  memberIds: z.array(z.string().uuid()).default([]),
-});
-
 export const saveProject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => projectSchema.parse(data))
@@ -216,7 +208,7 @@ export const saveProject = createServerFn({ method: "POST" })
 export const archiveProject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    orgSchema.extend({ id: z.string().uuid(), archived: z.boolean() }).parse(data),
+    orgIdArchivedSchema.parse(data),
   )
   .handler(async ({ data, context }) => {
     await requireOrgRole(context.supabase, context.userId, data.organizationId, "manager");
@@ -228,12 +220,6 @@ export const archiveProject = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
-
-const clientSchema = orgSchema.extend({
-  id: z.string().uuid().nullable().optional(),
-  name: z.string().trim().min(2).max(120),
-  contactEmail: z.string().trim().email().nullable().optional().or(z.literal("")),
-});
 
 export const saveClient = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -268,7 +254,7 @@ export const saveClient = createServerFn({ method: "POST" })
 export const setClientActive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    orgSchema.extend({ id: z.string().uuid(), isActive: z.boolean() }).parse(data),
+    orgIdActiveSchema.parse(data),
   )
   .handler(async ({ data, context }) => {
     await requireOrgRole(context.supabase, context.userId, data.organizationId, "manager");
@@ -280,12 +266,6 @@ export const setClientActive = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
-
-const categorySchema = orgSchema.extend({
-  id: z.string().uuid().nullable().optional(),
-  name: z.string().trim().min(2).max(80),
-  isBillable: z.boolean().default(true),
-});
 
 export const saveCategory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -320,7 +300,7 @@ export const saveCategory = createServerFn({ method: "POST" })
 export const setCategoryActive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    orgSchema.extend({ id: z.string().uuid(), isActive: z.boolean() }).parse(data),
+    orgIdActiveSchema.parse(data),
   )
   .handler(async ({ data, context }) => {
     await requireOrgRole(context.supabase, context.userId, data.organizationId, "manager");
