@@ -15,6 +15,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminEnvironmentRouteImport } from './routes/admin/environment'
 import { Route as AuthenticatedTimesheetsRouteImport } from './routes/_authenticated/timesheets'
+import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 
@@ -47,6 +48,11 @@ const AuthenticatedTimesheetsRoute = AuthenticatedTimesheetsRouteImport.update({
   path: '/timesheets',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProjectsRoute = AuthenticatedProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/projects': typeof AuthenticatedProjectsRoute
   '/timesheets': typeof AuthenticatedTimesheetsRoute
   '/admin/environment': typeof AdminEnvironmentRoute
 }
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/projects': typeof AuthenticatedProjectsRoute
   '/timesheets': typeof AuthenticatedTimesheetsRoute
   '/admin/environment': typeof AdminEnvironmentRoute
 }
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/projects': typeof AuthenticatedProjectsRoute
   '/_authenticated/timesheets': typeof AuthenticatedTimesheetsRoute
   '/admin/environment': typeof AdminEnvironmentRoute
 }
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard'
     | '/onboarding'
+    | '/projects'
     | '/timesheets'
     | '/admin/environment'
   fileRoutesByTo: FileRoutesByTo
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard'
     | '/onboarding'
+    | '/projects'
     | '/timesheets'
     | '/admin/environment'
   id:
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/dashboard'
     | '/_authenticated/onboarding'
+    | '/_authenticated/projects'
     | '/_authenticated/timesheets'
     | '/admin/environment'
   fileRoutesById: FileRoutesById
@@ -170,6 +182,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTimesheetsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/projects': {
+      id: '/_authenticated/projects'
+      path: '/projects'
+      fullPath: '/projects'
+      preLoaderRoute: typeof AuthenticatedProjectsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/onboarding': {
       id: '/_authenticated/onboarding'
       path: '/onboarding'
@@ -190,12 +209,14 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRoute
   AuthenticatedTimesheetsRoute: typeof AuthenticatedTimesheetsRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedProjectsRoute: AuthenticatedProjectsRoute,
   AuthenticatedTimesheetsRoute: AuthenticatedTimesheetsRoute,
 }
 
