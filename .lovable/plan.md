@@ -1,66 +1,46 @@
 ## Goal
 
-Turn the four placeholder pages (Timesheets, Projects, Team, Dashboard) into working features on top of the existing auth, workspace and branding foundation, using the tables already applied to the dev database.
+Today `clients → projects` already exists (`projects.client_id`), but categories are flat org-level records with no link to a project. This change gives each category an owning project (org-wide when none is set), shows each client's projects on the Clients tab, and filters the category picker by the selected project when logging time.
 
-## Phase 1 — Time entry and timesheets
+## 1. Database migration (for your review, applied by you)
 
-**Timer + entries**
-- Server functions in `src/lib/time.functions.ts`: start timer, stop timer (converts to a time entry), read current running timer, create/update/delete manual entries, list entries for a week.
-- One active timer per user, enforced server-side: starting a new timer stops any existing one.
-- Duration stored as integer minutes; the UI shows hours/minutes.
+New file `db/migrations/12_categories_project_link.sql`, also appended to `supabase/apply_all_dev.sql`:
 
-**Weekly timesheet page (`/timesheets`)**
-- Week picker with previous/next navigation and a "this week" shortcut.
-- Sticky timer bar: project + category selector, notes, start/stop, live elapsed counter.
-- Day-by-day list of entries grouped by date, with inline edit and delete, plus a manual "add entry" dialog (project, category, date, duration or start/end, billable flag, notes).
-- Weekly total, per-project subtotals, and billable vs non-billable split.
-- Submit for approval: locks the week's entries and sets the timesheet to submitted.
+- Add `project_id uuid references public.projects(id) on delete cascade` to `public.categories`.
+- Replace the `unique (organization_id, name)` constraint with a pair that allows the same name under different projects:
+  - unique index on `(organization_id, name)` where `project_id is null` (org-wide categories)
+  - unique index on `(project_id, name)` where `project_id is not null`
+- Add index `categories_project_idx on public.categories (project_id)`.
+- A trigger/check keeping `categories.project_id` in the same organization as `categories.organization_id`.
+- No grant changes needed (existing grants cover the table). RLS policies in `09_rls_work.sql` are org-scoped and continue to apply unchanged.
 
-## Phase 2 — Timesheet approval
+Existing categories keep `project_id = null` and stay available to every project, so nothing currently logged breaks.
 
-- Approvals queue visible to managers, admins and owners (role from the active membership).
-- List of submitted timesheets: person, week, total hours, submitted date.
-- Detail view showing every entry in the week, with Approve or Reject plus a required note on rejection.
-- Approval writes status, approver and timestamp; rejected weeks unlock so the member can correct and resubmit.
-- Status badges (draft / submitted / approved / rejected) surfaced on the member's own timesheet page.
+## 2. Server functions
 
-## Phase 3 — Projects
+`src/lib/schemas.ts`
+- `categorySchema` gains `projectId: uuid | null` (optional, defaults null).
 
-- `/projects` list with search, status filter, client, and archived toggle.
-- Create and edit projects: name, code, client, status, billable default, hourly rate, start/end dates, colour.
-- Client management (create, rename, archive) inside the same page as a secondary tab.
-- Categories (task types) managed per organization so time entries can be classified.
-- Project members: assign people to a project, controlling what appears in the timer's project picker.
-- Archiving instead of hard delete, keeping historical entries intact.
+`src/lib/projects.functions.ts`
+- `getProjectsPage`: select `project_id` on categories; add `projectId` / `projectName` to `CategoryRow`; add a `projects: {id,name}[]` list per client (`ClientRow.projects`) built from the already-fetched projects instead of just `projectCount`.
+- `saveCategory`: persist `project_id`, validating that the project belongs to the same organization.
 
-## Phase 4 — Team
+`src/lib/time.functions.ts`
+- `getPickers`: return `projectId` on each category option so the client can filter.
+- Keep `getWeek` unchanged (entries still embed `categories(name)`).
 
-- `/team` member list: name, email, role, job title, status, last activity.
-- Invite by email with a role selector; invitation rows created with a token and expiry.
-- Pending invitations list with resend and revoke.
-- Role changes and deactivation, restricted to admins and owners, with the last owner protected.
-- An accept-invitation route so an invited user can join after signing up.
+## 3. UI
 
-## Phase 5 — Dashboard
+`src/routes/_authenticated/projects.tsx`
+- Clients tab: replace the plain `Projects` count cell with the count plus the project names for that client (wrapped badges, "—" when none).
+- Categories tab: new "Project" column showing the owning project or "All projects"; the category dialog gets a project select (`All projects` + org projects).
 
-Replace the placeholder numbers with real data: hours this week vs target, active timer state, recent entries, per-project breakdown for the week, and a manager-only card for timesheets awaiting approval.
+`src/components/time/EntryDialog.tsx` and `src/components/time/TimerBar.tsx`
+- Filter the category options to those with `projectId === selectedProjectId` or `projectId === null`.
+- When the project changes and the chosen category no longer applies, reset the category to none.
 
-## Technical notes
+## 4. Verification
 
-- All data access goes through `createServerFn` with `requireSupabaseAuth`, scoped by the active organization id passed from the client and re-verified server-side against the caller's memberships — never trusting the client's claim alone.
-- Reads use TanStack Query with query keys namespaced by organization; mutations invalidate the affected keys.
-- Forms use React Hook Form + Zod, sharing schemas between client validation and server `inputValidator`.
-- Role gates in the UI mirror the database RLS policies; the server re-checks role with `has_min_role` for every privileged action.
-- Email sending for invitations is stubbed behind a single function until Mailtrap is wired, so the flow works end to end without the provider.
-- New shadcn components as needed (table, dialog, select, tabs, calendar/date picker); no new theme colours — everything uses existing semantic tokens.
+Typecheck, then load `/projects` in a browser to confirm the Clients tab lists projects and the category dialog saves a project link; check the entry dialog narrows categories per project.
 
-## Assumptions
-
-- Approval is single-step (one approver, no multi-level chain).
-- The week starts Monday and follows the organization's timezone.
-- Members can edit their own entries only while a week is draft or rejected.
-- Mailtrap wiring is a separate follow-up step.
-
-## Suggested order
-
-Phase 1 first since everything else depends on entries existing, then Projects (needed to make the timer useful), then Team, then Approval, then Dashboard. I can also do them in the listed order if you prefer approval earlier.
+Note: the migration must be run against your Supabase project (dev first) and the generated `database.types.ts` regenerated afterward — I'll update the local types file by hand in the same change so the code typechecks before you apply it.
