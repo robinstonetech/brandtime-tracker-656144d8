@@ -49,6 +49,7 @@ export type Database = {
           is_billable: boolean;
           name: string;
           organization_id: string;
+          project_id: string | null;
           updated_at: string;
         };
         Insert: {
@@ -59,6 +60,7 @@ export type Database = {
           is_billable?: boolean;
           name: string;
           organization_id: string;
+          project_id?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -69,6 +71,7 @@ export type Database = {
           is_billable?: boolean;
           name?: string;
           organization_id?: string;
+          project_id?: string | null;
           updated_at?: string;
         };
         Relationships: [
@@ -79,8 +82,16 @@ export type Database = {
             referencedRelation: "organizations";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "categories_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
         ];
       };
+
       clients: {
         Row: {
           contact_email: string | null;
