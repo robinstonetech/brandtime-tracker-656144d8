@@ -686,11 +686,13 @@ function ClientDialog({
 function CategoryDialog({
   organizationId,
   value,
+  projects,
   onClose,
   onSaved,
 }: {
   organizationId: string;
   value: CategoryRow | "new" | null;
+  projects: ProjectRow[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -698,17 +700,25 @@ function CategoryDialog({
   const save = useServerFn(saveCategory);
   const [name, setName] = useState("");
   const [isBillable, setIsBillable] = useState(true);
+  const [projectId, setProjectId] = useState(ALL_PROJECTS);
 
   useEffect(() => {
     if (!value) return;
     setName(category?.name ?? "");
     setIsBillable(category?.isBillable ?? true);
+    setProjectId(category?.projectId ?? ALL_PROJECTS);
   }, [value, category]);
 
   const mutation = useMutation({
     mutationFn: () =>
       save({
-        data: { organizationId, id: category?.id ?? null, name: name.trim(), isBillable },
+        data: {
+          organizationId,
+          id: category?.id ?? null,
+          name: name.trim(),
+          isBillable,
+          projectId: projectId === ALL_PROJECTS ? null : projectId,
+        },
       }),
     onSuccess: () => {
       onSaved();
@@ -729,6 +739,22 @@ function CategoryDialog({
           <div className="space-y-2">
             <Label htmlFor="category-name">Name</Label>
             <Input id="category-name" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Project</Label>
+            <Select value={projectId} onValueChange={setProjectId}>
+              <SelectTrigger>
+                <SelectValue placeholder="All projects" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_PROJECTS}>All projects</SelectItem>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex items-center gap-2">
             <Checkbox
