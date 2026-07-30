@@ -191,6 +191,61 @@ export const revokeInvitation = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Rotates the token, extends the expiry and re-sends the invitation email. */
+export const resendInvitation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => idSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: invite, error: readError } = await context.supabase
+      .from("invitations")
+      .select("organization_id, email, status")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    if (!invite) throw new Error("Invitation not found");
+    if (invite.status !== "pending") throw new Error("Only pending invitations can be resent");
+
+    await requireOrgRole(context.supabase, context.userId, invite.organization_id, "admin");
+
+    const token = generateInvitationToken();
+    const tokenHash = await hashInvitationToken(token);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    const { error: updateError } = await context.supabase
+      .from("invitations")
+      .update({ token_hash: tokenHash, expires_at: expiresAt })
+      .eq("id", data.id);
+    if (updateError) throw new Error(updateError.message);
+
+    const [{ data: org }, { data: profile }] = await Promise.all([
+      context.supabase
+        .from("organizations")
+        .select("name")
+        .eq("id", invite.organization_id)
+        .maybeSingle(),
+      context.supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", context.userId)
+        .maybeSingle(),
+    ]);
+
+    const origin =
+      getRequestHeader("origin") ??
+      (getRequestHeader("host") ? `https://${getRequestHeader("host")}` : "https://mytimesheets.app");
+    const url = invitationUrl(origin, token);
+
+    const { invitationEmail, sendEmail } = await import("@/lib/mailer.server");
+    const message = invitationEmail(
+      org?.name ?? "your organization",
+      profile?.full_name ?? profile?.email ?? "A teammate",
+      url,
+    );
+    const result = await sendEmail({ to: invite.email, ...message });
+
+    return { inviteUrl: url, delivered: result.delivered };
+  });
+
 export const updateMemberRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => memberRoleSchema.parse(data))

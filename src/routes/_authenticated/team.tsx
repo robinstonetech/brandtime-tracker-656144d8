@@ -39,6 +39,7 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 import {
   getTeam,
   inviteTeammate,
+  resendInvitation,
   revokeInvitation,
   setMemberActive,
   updateMemberRole,
@@ -77,6 +78,7 @@ function TeamPage() {
   const fetchTeam = useServerFn(getTeam);
   const invite = useServerFn(inviteTeammate);
   const revoke = useServerFn(revokeInvitation);
+  const resend = useServerFn(resendInvitation);
   const changeRole = useServerFn(updateMemberRole);
   const setActive = useServerFn(setMemberActive);
 
@@ -115,6 +117,19 @@ function TeamPage() {
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const resendMutation = useMutation({
+    mutationFn: (id: string) => resend({ data: { id } }),
+    onSuccess: (result) => {
+      void invalidate();
+      setLastLink(result.inviteUrl);
+      toast.success(
+        result.delivered ? "Invitation email resent" : "New link generated — share it below",
+      );
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
 
   const roleMutation = useMutation({
     mutationFn: (input: { userId: string; role: (typeof ROLES)[number] }) =>
@@ -288,6 +303,21 @@ function TeamPage() {
                             {new Date(invitation.expiresAt).toLocaleDateString()}
                           </TableCell>
                           <TableCell className="text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="mr-2"
+                              disabled={
+                                resendMutation.isPending &&
+                                resendMutation.variables === invitation.id
+                              }
+                              onClick={() => resendMutation.mutate(invitation.id)}
+                            >
+                              {resendMutation.isPending &&
+                              resendMutation.variables === invitation.id
+                                ? "Sending…"
+                                : "Resend"}
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"
