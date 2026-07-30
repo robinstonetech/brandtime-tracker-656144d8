@@ -52,7 +52,6 @@ import {
   type ProjectRow,
 } from "@/lib/projects.functions";
 
-const ALL_PROJECTS = "__all__";
 
 
 
@@ -757,7 +756,6 @@ function CategoryDialog({
                   <SelectItem key={project.id} value={project.id}>
                     {project.name}
                   </SelectItem>
-
                 ))}
               </SelectContent>
             </Select>
