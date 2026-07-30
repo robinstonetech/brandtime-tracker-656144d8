@@ -42,9 +42,7 @@ export const getTeam = createServerFn({ method: "GET" })
     const [membersResult, invitesResult] = await Promise.all([
       context.supabase
         .from("memberships")
-        .select(
-          "user_id, role, is_active, created_at, profiles:user_id(full_name, email, avatar_url, job_title)",
-        )
+        .select("user_id, role, is_active, created_at")
         .eq("organization_id", data.organizationId)
         .order("created_at"),
       context.supabase
@@ -56,13 +54,30 @@ export const getTeam = createServerFn({ method: "GET" })
 
     if (membersResult.error) throw new Error(membersResult.error.message);
 
-    const members: TeamMember[] = (membersResult.data ?? []).map((row) => {
-      const profile = row.profiles as unknown as {
-        full_name: string | null;
-        email: string;
-        avatar_url: string | null;
-        job_title: string | null;
-      } | null;
+    const memberRows = membersResult.data ?? [];
+    const profileMap = new Map<
+      string,
+      { full_name: string | null; email: string; avatar_url: string | null; job_title: string | null }
+    >();
+    const memberIds = [...new Set(memberRows.map((row) => row.user_id))];
+    if (memberIds.length > 0) {
+      const { data: profiles, error: profileError } = await context.supabase
+        .from("profiles")
+        .select("id, full_name, email, avatar_url, job_title")
+        .in("id", memberIds);
+      if (profileError) throw new Error(profileError.message);
+      for (const profile of profiles ?? []) {
+        profileMap.set(profile.id, {
+          full_name: profile.full_name,
+          email: profile.email,
+          avatar_url: profile.avatar_url,
+          job_title: profile.job_title,
+        });
+      }
+    }
+
+    const members: TeamMember[] = memberRows.map((row) => {
+      const profile = profileMap.get(row.user_id) ?? null;
       return {
         userId: row.user_id,
         name: profile?.full_name ?? profile?.email ?? "Unknown",
@@ -74,6 +89,7 @@ export const getTeam = createServerFn({ method: "GET" })
         joinedAt: row.created_at,
       };
     });
+
 
     return {
       role,
