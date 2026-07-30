@@ -3,22 +3,25 @@
 These files target the **external** Supabase projects (development and
 production). They are not applied automatically by Lovable.
 
-## How to apply
+CLI-ready, timestamp-prefixed copies of these same files live in
+`supabase/migrations/` — push those. See `supabase/README.md` for the full
+apply-and-regenerate-types walkthrough. Keep this folder as the reviewed
+source of truth; if you edit a file here, copy it across before pushing.
 
-1. Review each file in order (they are numbered and timestamped).
-2. Copy them into your Supabase repo's `supabase/migrations/` folder, or paste
-   them into the SQL editor in order.
-3. Apply to **development** first:
-   ```bash
-   supabase link --project-ref jwydonacprzffqasxhav
-   supabase db push
-   ```
-4. Regenerate types and commit:
-   ```bash
-   supabase gen types typescript --project-id jwydonacprzffqasxhav \
-     > src/integrations/supabase/database.types.ts
-   ```
-5. When verified, repeat step 3 against production (`sezrcfpntuvpjdsnkedz`).
+Quick version:
+
+```bash
+supabase login
+supabase link --project-ref jwydonacprzffqasxhav   # development
+supabase db push
+supabase gen types typescript --project-id jwydonacprzffqasxhav \
+  > src/integrations/supabase/database.types.ts
+```
+
+Repeat the link + push against `sezrcfpntuvpjdsnkedz` once development is
+verified. `11_seed_dev.sql` is dev-only and lives at `supabase/seed_dev.sql`
+so it can never be pushed to production.
+
 
 ## Order
 
