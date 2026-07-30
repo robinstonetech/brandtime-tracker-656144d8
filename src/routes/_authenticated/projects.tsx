@@ -750,14 +750,14 @@ function CategoryDialog({
             <Label>Project</Label>
             <Select value={projectId} onValueChange={setProjectId}>
               <SelectTrigger>
-                <SelectValue placeholder="All projects" />
+                <SelectValue placeholder="Select a project" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL_PROJECTS}>All projects</SelectItem>
                 {projects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
                     {project.name}
                   </SelectItem>
+
                 ))}
               </SelectContent>
             </Select>
