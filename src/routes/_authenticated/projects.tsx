@@ -277,7 +277,19 @@ function ProjectsPage() {
                         <TableRow key={client.id}>
                           <TableCell className="font-medium">{client.name}</TableCell>
                           <TableCell>{client.contactEmail ?? "—"}</TableCell>
-                          <TableCell>{client.projectCount}</TableCell>
+                          <TableCell>
+                            {client.projects.length === 0 ? (
+                              "—"
+                            ) : (
+                              <div className="flex flex-wrap gap-1">
+                                {client.projects.map((project) => (
+                                  <Badge key={project.id} variant="outline">
+                                    {project.name}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <Badge variant={client.isActive ? "default" : "secondary"}>
                               {client.isActive ? "Active" : "Inactive"}
