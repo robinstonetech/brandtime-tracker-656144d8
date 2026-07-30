@@ -169,7 +169,7 @@ export function TimerBar({ organizationId, timer, projects, categories, disabled
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={NONE}>None</SelectItem>
-            {categories.map((category) => (
+            {availableCategories.map((category) => (
               <SelectItem key={category.id} value={category.id}>
                 {category.name}
               </SelectItem>
