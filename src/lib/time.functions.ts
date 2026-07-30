@@ -94,6 +94,7 @@ export const getTimeOptions = createServerFn({ method: "GET" })
         id: c.id,
         name: c.name,
         isBillable: c.is_billable,
+        projectId: c.project_id,
       })) satisfies PickerOption[],
     };
   });
