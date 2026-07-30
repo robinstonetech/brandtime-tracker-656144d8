@@ -59,7 +59,8 @@ export const getEnvironmentStatus = createServerFn({ method: "GET" }).handler(
     const serviceRoleKey = getServiceRoleKey(environment);
 
     const [restHealth, authHealth, serviceRoleHealth] = await Promise.all([
-      probe(`${environment.url}/rest/v1/`, environment.publishableKey),
+      // Validates the publishable key itself; the REST root rejects non-secret keys.
+      probe(`${environment.url}/auth/v1/settings`, environment.publishableKey),
       probe(`${environment.url}/auth/v1/health`, environment.publishableKey),
       probe(`${environment.url}/rest/v1/`, serviceRoleKey),
     ]);

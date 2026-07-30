@@ -119,7 +119,7 @@ function EnvironmentPage() {
           {error && <p className="text-destructive">{(error as Error).message}</p>}
           {data && (
             <>
-              <HealthRow label="Data API (publishable key)" health={data.restHealth} />
+              <HealthRow label="Publishable key" health={data.restHealth} />
               <HealthRow label="Auth service" health={data.authHealth} />
               <HealthRow label="Data API (service role)" health={data.serviceRoleHealth} />
               {!data.serviceRoleConfigured && (
