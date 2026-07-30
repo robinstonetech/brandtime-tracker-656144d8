@@ -76,7 +76,7 @@ export const getProjectsPage = createServerFn({ method: "GET" })
           .eq("organization_id", data.organizationId),
         context.supabase
           .from("memberships")
-          .select("user_id, role, profiles:user_id(full_name, email)")
+          .select("user_id, role")
           .eq("organization_id", data.organizationId)
           .eq("is_active", true),
       ]);
@@ -99,8 +99,22 @@ export const getProjectsPage = createServerFn({ method: "GET" })
       projectCountByClient.set(row.client_id, (projectCountByClient.get(row.client_id) ?? 0) + 1);
     }
 
-    const people: OrgPerson[] = (peopleResult.data ?? []).map((row) => {
-      const profile = row.profiles as unknown as { full_name: string | null; email: string } | null;
+    const peopleRows = peopleResult.data ?? [];
+    const peopleProfiles = new Map<string, { full_name: string | null; email: string }>();
+    const peopleIds = [...new Set(peopleRows.map((row) => row.user_id))];
+    if (peopleIds.length > 0) {
+      const { data: profiles, error: profileError } = await context.supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", peopleIds);
+      if (profileError) throw new Error(profileError.message);
+      for (const profile of profiles ?? []) {
+        peopleProfiles.set(profile.id, { full_name: profile.full_name, email: profile.email });
+      }
+    }
+
+    const people: OrgPerson[] = peopleRows.map((row) => {
+      const profile = peopleProfiles.get(row.user_id) ?? null;
       return {
         userId: row.user_id,
         name: profile?.full_name ?? profile?.email ?? "Unknown",
@@ -108,6 +122,7 @@ export const getProjectsPage = createServerFn({ method: "GET" })
         role: row.role,
       };
     });
+
 
     return {
       role,

@@ -43,7 +43,7 @@ export const getApprovals = createServerFn({ method: "GET" })
     const { data: rows, error } = await context.supabase
       .from("timesheets")
       .select(
-        "id, user_id, period_start, period_end, status, total_minutes, submitted_at, reviewed_at, review_note, profiles:user_id(full_name, email)",
+        "id, user_id, period_start, period_end, status, total_minutes, submitted_at, reviewed_at, review_note",
       )
       .eq("organization_id", data.organizationId)
       .neq("status", "draft")
@@ -52,24 +52,40 @@ export const getApprovals = createServerFn({ method: "GET" })
 
     if (error) throw new Error(error.message);
 
-    const timesheets: ApprovalRow[] = (rows ?? [])
-      .filter((row) => row.user_id !== context.userId || role === "owner" || role === "admin")
-      .map((row) => {
-        const profile = row.profiles as unknown as { full_name: string | null; email: string } | null;
-        return {
-          id: row.id,
-          userId: row.user_id,
-          memberName: profile?.full_name ?? profile?.email ?? "Unknown",
-          memberEmail: profile?.email ?? "",
-          periodStart: row.period_start,
-          periodEnd: row.period_end,
-          status: row.status,
-          totalMinutes: row.total_minutes,
-          submittedAt: row.submitted_at,
-          reviewedAt: row.reviewed_at,
-          reviewNote: row.review_note,
-        };
-      });
+    const visible = (rows ?? []).filter(
+      (row) => row.user_id !== context.userId || role === "owner" || role === "admin",
+    );
+
+    const userIds = [...new Set(visible.map((row) => row.user_id))];
+    const profileMap = new Map<string, { full_name: string | null; email: string }>();
+    if (userIds.length > 0) {
+      const { data: profiles, error: profileError } = await context.supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", userIds);
+      if (profileError) throw new Error(profileError.message);
+      for (const profile of profiles ?? []) {
+        profileMap.set(profile.id, { full_name: profile.full_name, email: profile.email });
+      }
+    }
+
+    const timesheets: ApprovalRow[] = visible.map((row) => {
+      const profile = profileMap.get(row.user_id) ?? null;
+      return {
+        id: row.id,
+        userId: row.user_id,
+        memberName: profile?.full_name ?? profile?.email ?? "Unknown",
+        memberEmail: profile?.email ?? "",
+        periodStart: row.period_start,
+        periodEnd: row.period_end,
+        status: row.status,
+        totalMinutes: row.total_minutes,
+        submittedAt: row.submitted_at,
+        reviewedAt: row.reviewed_at,
+        reviewNote: row.review_note,
+      };
+    });
+
 
     return { role, timesheets };
   });
