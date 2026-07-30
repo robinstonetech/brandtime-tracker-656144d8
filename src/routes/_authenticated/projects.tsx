@@ -416,6 +416,7 @@ function ProjectsPage() {
       <CategoryDialog
         organizationId={organizationId}
         value={categoryDialog}
+        projects={projects}
         onClose={() => setCategoryDialog(null)}
         onSaved={() => void invalidate()}
       />
