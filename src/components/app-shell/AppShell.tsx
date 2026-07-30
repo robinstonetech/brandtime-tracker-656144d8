@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
   Building2,
   CalendarClock,
+  CheckCircle2,
   ChevronDown,
   FolderKanban,
   LayoutDashboard,
