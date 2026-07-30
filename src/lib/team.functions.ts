@@ -270,3 +270,44 @@ export const acceptInvitation = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { organizationId: organizationId as string };
   });
+
+export type InvitationPreview = {
+  organizationId: string;
+  organizationName: string;
+  email: string;
+  role: "owner" | "admin" | "manager" | "member";
+  status: "pending" | "accepted" | "revoked" | "expired";
+  expired: boolean;
+};
+
+/** Public lookup of an invitation by raw token — no session required. */
+export const getInvitationPreview = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => acceptInviteSchema.parse(data))
+  .handler(async ({ data }): Promise<InvitationPreview | null> => {
+    const tokenHash = await hashInvitationToken(data.token);
+    const { getSupabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const admin = getSupabaseAdmin();
+
+    const { data: invite, error } = await admin
+      .from("invitations")
+      .select("organization_id, email, role, status, expires_at")
+      .eq("token_hash", tokenHash)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!invite) return null;
+
+    const { data: org } = await admin
+      .from("organizations")
+      .select("name")
+      .eq("id", invite.organization_id)
+      .maybeSingle();
+
+    return {
+      organizationId: invite.organization_id,
+      organizationName: org?.name ?? "your organization",
+      email: invite.email,
+      role: invite.role,
+      status: invite.status,
+      expired: new Date(invite.expires_at).getTime() < Date.now(),
+    };
+  });
