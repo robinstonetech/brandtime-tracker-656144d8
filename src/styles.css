@@ -42,6 +42,8 @@
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
   --color-cream: var(--cream);
+  --color-moss: var(--moss);
+  --color-moss-foreground: var(--moss-foreground);
   --color-sage: var(--sage);
   --color-forest: var(--forest);
   --color-bark: var(--bark);
