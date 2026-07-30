@@ -3,11 +3,13 @@ import { getRequestHeader } from "@tanstack/react-start/server";
 import { createClient } from "@supabase/supabase-js";
 
 import type { Database } from "./database.types";
-import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL, createOpaqueKeyFetch } from "./config";
+import { createOpaqueKeyFetch } from "./config";
+import { getServerEnvironment } from "./environment.server";
 
 /**
  * Validates the request bearer token and injects an authenticated Supabase
  * client (RLS as the user), plus `userId` and `claims`, into context.
+ * The Supabase project is resolved per request from the host.
  */
 export const requireSupabaseAuth = createMiddleware().server(async ({ next }) => {
   const authHeader = getRequestHeader("authorization") ?? "";
@@ -17,9 +19,10 @@ export const requireSupabaseAuth = createMiddleware().server(async ({ next }) =>
     throw new Response("Unauthorized", { status: 401 });
   }
 
-  const baseFetch = createOpaqueKeyFetch(SUPABASE_PUBLISHABLE_KEY);
+  const environment = getServerEnvironment();
+  const baseFetch = createOpaqueKeyFetch(environment.publishableKey);
 
-  const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  const supabase = createClient<Database>(environment.url, environment.publishableKey, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: {
       fetch: (input: RequestInfo | URL, init?: RequestInit) => {
@@ -40,6 +43,7 @@ export const requireSupabaseAuth = createMiddleware().server(async ({ next }) =>
       supabase,
       userId: data.user.id,
       claims: data.user,
+      environment,
     },
   });
 });

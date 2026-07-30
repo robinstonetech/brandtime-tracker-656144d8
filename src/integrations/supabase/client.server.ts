@@ -1,15 +1,32 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "./database.types";
-import { SUPABASE_URL, createOpaqueKeyFetch } from "./config";
+import { createOpaqueKeyFetch } from "./config";
+import { getServerEnvironment, getServiceRoleKey } from "./environment.server";
+import type { SupabaseEnvironment } from "./environments";
 
 /**
- * Service-role client. BYPASSES RLS — server-only, privileged operations only.
+ * Service-role client for the environment of the current request.
+ * BYPASSES RLS — server-only, privileged operations only.
  * Import inside a server-function `.handler()` via `await import(...)`.
  */
-const serviceRoleKey = process.env.EXT_SUPABASE_SERVICE_ROLE_KEY ?? "";
+export function getSupabaseAdmin(
+  environment: SupabaseEnvironment = getServerEnvironment(),
+): SupabaseClient<Database> {
+  const key = getServiceRoleKey(environment);
 
-export const supabaseAdmin = createClient<Database>(SUPABASE_URL, serviceRoleKey, {
-  auth: { persistSession: false, autoRefreshToken: false },
-  global: { fetch: createOpaqueKeyFetch(serviceRoleKey) },
-});
+  return createClient<Database>(environment.url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: createOpaqueKeyFetch(key) },
+  });
+}
+
+/** Publishable-key client for public reads during SSR (RLS applies as anon). */
+export function getSupabasePublicServer(
+  environment: SupabaseEnvironment = getServerEnvironment(),
+): SupabaseClient<Database> {
+  return createClient<Database>(environment.url, environment.publishableKey, {
+    auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
+    global: { fetch: createOpaqueKeyFetch(environment.publishableKey) },
+  });
+}
