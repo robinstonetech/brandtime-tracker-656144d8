@@ -304,6 +304,21 @@ function TeamPage() {
                           </TableCell>
                           <TableCell className="text-right">
                             <Button
+                              variant="outline"
+                              size="sm"
+                              className="mr-2"
+                              disabled={
+                                resendMutation.isPending &&
+                                resendMutation.variables === invitation.id
+                              }
+                              onClick={() => resendMutation.mutate(invitation.id)}
+                            >
+                              {resendMutation.isPending &&
+                              resendMutation.variables === invitation.id
+                                ? "Sending…"
+                                : "Resend"}
+                            </Button>
+                            <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => revokeMutation.mutate(invitation.id)}
