@@ -152,13 +152,16 @@ export const getProjectsPage = createServerFn({ method: "GET" })
         name: row.name,
         contactEmail: row.contact_email,
         isActive: row.is_active,
-        projectCount: projectCountByClient.get(row.id) ?? 0,
+        projectCount: projectsByClient.get(row.id)?.length ?? 0,
+        projects: projectsByClient.get(row.id) ?? [],
       })) satisfies ClientRow[],
       categories: (categoriesResult.data ?? []).map((row) => ({
         id: row.id,
         name: row.name,
         isBillable: row.is_billable,
         isActive: row.is_active,
+        projectId: row.project_id,
+        projectName: row.project_id ? (projectNames.get(row.project_id) ?? null) : null,
       })) satisfies CategoryRow[],
       people,
     };
