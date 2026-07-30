@@ -32,6 +32,7 @@ export type ClientRow = {
   contactEmail: string | null;
   isActive: boolean;
   projectCount: number;
+  projects: { id: string; name: string }[];
 };
 
 export type CategoryRow = {
@@ -39,6 +40,8 @@ export type CategoryRow = {
   name: string;
   isBillable: boolean;
   isActive: boolean;
+  projectId: string | null;
+  projectName: string | null;
 };
 
 export type OrgPerson = { userId: string; name: string; email: string; role: string };
