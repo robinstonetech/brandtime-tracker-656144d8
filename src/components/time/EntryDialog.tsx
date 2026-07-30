@@ -73,6 +73,20 @@ export function EntryDialog({
     setIsBillable(entry?.isBillable ?? true);
   }, [open, entry, defaultDate]);
 
+  // Categories either belong to the selected project or apply to every project.
+  const availableCategories = categories.filter(
+    (category) =>
+      category.projectId == null ||
+      (projectId !== NONE && category.projectId === projectId),
+  );
+
+  useEffect(() => {
+    if (categoryId === NONE) return;
+    if (!availableCategories.some((category) => category.id === categoryId)) {
+      setCategoryId(NONE);
+    }
+  }, [availableCategories, categoryId]);
+
   const mutation = useMutation({
     mutationFn: async () => {
       const minutes = parseDurationToMinutes(duration);
