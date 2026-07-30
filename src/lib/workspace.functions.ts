@@ -59,9 +59,7 @@ export const getWorkspace = createServerFn({ method: "GET" })
         .maybeSingle(),
       context.supabase
         .from("memberships")
-        .select(
-          "organization_id, role, organizations!inner(id, name, slug, is_active, deleted_at), organization_branding:organization_id(product_name, primary_color, accent_color, background_color, foreground_color, logo_url, logo_dark_url, font_family, support_email)",
-        )
+        .select("organization_id, role, organizations!inner(id, name, slug, is_active, deleted_at)")
         .eq("user_id", context.userId)
         .eq("is_active", true),
     ]);
@@ -69,40 +67,52 @@ export const getWorkspace = createServerFn({ method: "GET" })
     if (profileResult.error) throw new Error(profileResult.error.message);
     if (membershipResult.error) throw new Error(membershipResult.error.message);
 
-    const memberships: WorkspaceMembership[] = (membershipResult.data ?? [])
-      .filter((row) => {
-        const org = row.organizations as unknown as { is_active: boolean; deleted_at: string | null };
-        return org && org.is_active && !org.deleted_at;
-      })
+    const activeRows = (membershipResult.data ?? []).filter((row) => {
+      const org = row.organizations as unknown as { is_active: boolean; deleted_at: string | null };
+      return org && org.is_active && !org.deleted_at;
+    });
+
+    const brandingByOrg = new Map<string, WorkspaceBranding>();
+    if (activeRows.length > 0) {
+      const { data: brandingRows, error: brandingError } = await context.supabase
+        .from("organization_branding")
+        .select(
+          "organization_id, product_name, primary_color, accent_color, background_color, foreground_color, logo_url, logo_dark_url, font_family, support_email",
+        )
+        .in(
+          "organization_id",
+          activeRows.map((row) => row.organization_id),
+        );
+      if (brandingError) throw new Error(brandingError.message);
+
+      for (const row of brandingRows ?? []) {
+        brandingByOrg.set(row.organization_id, {
+          productName: row.product_name ?? DEFAULT_BRANDING.productName,
+          primaryColor: row.primary_color ?? DEFAULT_BRANDING.primaryColor,
+          accentColor: row.accent_color ?? DEFAULT_BRANDING.accentColor,
+          backgroundColor: row.background_color ?? DEFAULT_BRANDING.backgroundColor,
+          foregroundColor: row.foreground_color ?? DEFAULT_BRANDING.foregroundColor,
+          logoUrl: row.logo_url,
+          logoDarkUrl: row.logo_dark_url,
+          fontFamily: row.font_family,
+          supportEmail: row.support_email,
+        });
+      }
+    }
+
+    const memberships: WorkspaceMembership[] = activeRows
       .map((row) => {
         const org = row.organizations as unknown as { name: string; slug: string };
-        const brandingRow = (
-          Array.isArray(row.organization_branding)
-            ? row.organization_branding[0]
-            : row.organization_branding
-        ) as Record<string, string | null> | null | undefined;
-
         return {
           organizationId: row.organization_id,
           organizationName: org.name,
           organizationSlug: org.slug,
           role: row.role,
-          branding: brandingRow
-            ? {
-                productName: brandingRow.product_name ?? DEFAULT_BRANDING.productName,
-                primaryColor: brandingRow.primary_color ?? DEFAULT_BRANDING.primaryColor,
-                accentColor: brandingRow.accent_color ?? DEFAULT_BRANDING.accentColor,
-                backgroundColor: brandingRow.background_color ?? DEFAULT_BRANDING.backgroundColor,
-                foregroundColor: brandingRow.foreground_color ?? DEFAULT_BRANDING.foregroundColor,
-                logoUrl: brandingRow.logo_url ?? null,
-                logoDarkUrl: brandingRow.logo_dark_url ?? null,
-                fontFamily: brandingRow.font_family ?? null,
-                supportEmail: brandingRow.support_email ?? null,
-              }
-            : null,
+          branding: brandingByOrg.get(row.organization_id) ?? null,
         };
       })
       .sort((a, b) => a.organizationName.localeCompare(b.organizationName));
+
 
     return {
       profile: profileResult.data
