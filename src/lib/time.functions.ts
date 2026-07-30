@@ -75,7 +75,7 @@ export const getTimeOptions = createServerFn({ method: "GET" })
         .order("name"),
       context.supabase
         .from("categories")
-        .select("id, name, is_billable")
+        .select("id, name, is_billable, project_id")
         .eq("organization_id", data.organizationId)
         .eq("is_active", true)
         .order("name"),
