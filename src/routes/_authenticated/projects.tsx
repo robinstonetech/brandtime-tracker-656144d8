@@ -704,26 +704,28 @@ function CategoryDialog({
   const save = useServerFn(saveCategory);
   const [name, setName] = useState("");
   const [isBillable, setIsBillable] = useState(true);
-  const [projectId, setProjectId] = useState(ALL_PROJECTS);
+  const [projectId, setProjectId] = useState("");
 
   useEffect(() => {
     if (!value) return;
     setName(category?.name ?? "");
     setIsBillable(category?.isBillable ?? true);
-    setProjectId(category?.projectId ?? ALL_PROJECTS);
+    setProjectId(category?.projectId ?? "");
   }, [value, category]);
 
   const mutation = useMutation({
-    mutationFn: () =>
-      save({
+    mutationFn: () => {
+      if (!projectId) throw new Error("Select a project for this category");
+      return save({
         data: {
           organizationId,
           id: category?.id ?? null,
           name: name.trim(),
           isBillable,
-          projectId: projectId === ALL_PROJECTS ? null : projectId,
+          projectId,
         },
-      }),
+      });
+    },
     onSuccess: () => {
       onSaved();
       toast.success(category ? "Category updated" : "Category created");
