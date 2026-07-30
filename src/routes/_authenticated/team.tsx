@@ -118,6 +118,19 @@ function TeamPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const resendMutation = useMutation({
+    mutationFn: (id: string) => resend({ data: { id } }),
+    onSuccess: (result) => {
+      void invalidate();
+      setLastLink(result.inviteUrl);
+      toast.success(
+        result.delivered ? "Invitation email resent" : "New link generated — share it below",
+      );
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+
   const roleMutation = useMutation({
     mutationFn: (input: { userId: string; role: (typeof ROLES)[number] }) =>
       changeRole({ data: { organizationId: organizationId!, ...input } }),
