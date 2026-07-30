@@ -70,7 +70,7 @@ export const getProjectsPage = createServerFn({ method: "GET" })
           .order("name"),
         context.supabase
           .from("categories")
-          .select("id, name, is_billable, is_active")
+          .select("id, name, is_billable, is_active, project_id")
           .eq("organization_id", data.organizationId)
           .order("name"),
         context.supabase
