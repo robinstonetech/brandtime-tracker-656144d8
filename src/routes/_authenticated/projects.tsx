@@ -360,7 +360,7 @@ function ProjectsPage() {
                           <TableCell className="font-medium">{category.name}</TableCell>
                           <TableCell>
                             {category.projectName ?? (
-                              <span className="text-muted-foreground">All projects</span>
+                              <span className="text-muted-foreground">Unassigned</span>
                             )}
                           </TableCell>
                           <TableCell>{category.isBillable ? "Yes" : "No"}</TableCell>
