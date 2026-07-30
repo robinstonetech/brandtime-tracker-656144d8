@@ -57,6 +57,7 @@ export const categorySchema = orgSchema.extend({
   id: z.string().uuid().nullable().optional(),
   name: z.string().trim().min(2).max(80),
   isBillable: z.boolean().default(true),
+  projectId: z.string().uuid().nullable().optional(),
 });
 
 export const appRoleSchema = z.enum(["owner", "admin", "manager", "member"]);

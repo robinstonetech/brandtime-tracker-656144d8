@@ -52,6 +52,10 @@ import {
   type ProjectRow,
 } from "@/lib/projects.functions";
 
+const ALL_PROJECTS = "__all__";
+
+
+
 export const Route = createFileRoute("/_authenticated/projects")({
   head: () => ({
     meta: [
@@ -277,7 +281,19 @@ function ProjectsPage() {
                         <TableRow key={client.id}>
                           <TableCell className="font-medium">{client.name}</TableCell>
                           <TableCell>{client.contactEmail ?? "—"}</TableCell>
-                          <TableCell>{client.projectCount}</TableCell>
+                          <TableCell>
+                            {client.projects.length === 0 ? (
+                              "—"
+                            ) : (
+                              <div className="flex flex-wrap gap-1">
+                                {client.projects.map((project) => (
+                                  <Badge key={project.id} variant="outline">
+                                    {project.name}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <Badge variant={client.isActive ? "default" : "secondary"}>
                               {client.isActive ? "Active" : "Inactive"}
@@ -332,6 +348,7 @@ function ProjectsPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Name</TableHead>
+                        <TableHead>Project</TableHead>
                         <TableHead>Billable</TableHead>
                         <TableHead>Status</TableHead>
                         {canManage ? <TableHead className="text-right">Actions</TableHead> : null}
@@ -341,6 +358,11 @@ function ProjectsPage() {
                       {categories.map((category) => (
                         <TableRow key={category.id}>
                           <TableCell className="font-medium">{category.name}</TableCell>
+                          <TableCell>
+                            {category.projectName ?? (
+                              <span className="text-muted-foreground">All projects</span>
+                            )}
+                          </TableCell>
                           <TableCell>{category.isBillable ? "Yes" : "No"}</TableCell>
                           <TableCell>
                             <Badge variant={category.isActive ? "default" : "secondary"}>
@@ -398,6 +420,7 @@ function ProjectsPage() {
       <CategoryDialog
         organizationId={organizationId}
         value={categoryDialog}
+        projects={projects}
         onClose={() => setCategoryDialog(null)}
         onSaved={() => void invalidate()}
       />
@@ -667,11 +690,13 @@ function ClientDialog({
 function CategoryDialog({
   organizationId,
   value,
+  projects,
   onClose,
   onSaved,
 }: {
   organizationId: string;
   value: CategoryRow | "new" | null;
+  projects: ProjectRow[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -679,17 +704,25 @@ function CategoryDialog({
   const save = useServerFn(saveCategory);
   const [name, setName] = useState("");
   const [isBillable, setIsBillable] = useState(true);
+  const [projectId, setProjectId] = useState(ALL_PROJECTS);
 
   useEffect(() => {
     if (!value) return;
     setName(category?.name ?? "");
     setIsBillable(category?.isBillable ?? true);
+    setProjectId(category?.projectId ?? ALL_PROJECTS);
   }, [value, category]);
 
   const mutation = useMutation({
     mutationFn: () =>
       save({
-        data: { organizationId, id: category?.id ?? null, name: name.trim(), isBillable },
+        data: {
+          organizationId,
+          id: category?.id ?? null,
+          name: name.trim(),
+          isBillable,
+          projectId: projectId === ALL_PROJECTS ? null : projectId,
+        },
       }),
     onSuccess: () => {
       onSaved();
@@ -710,6 +743,22 @@ function CategoryDialog({
           <div className="space-y-2">
             <Label htmlFor="category-name">Name</Label>
             <Input id="category-name" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Project</Label>
+            <Select value={projectId} onValueChange={setProjectId}>
+              <SelectTrigger>
+                <SelectValue placeholder="All projects" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_PROJECTS}>All projects</SelectItem>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex items-center gap-2">
             <Checkbox

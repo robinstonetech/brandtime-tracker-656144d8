@@ -51,7 +51,12 @@ export type TimerState = {
   description: string | null;
 } | null;
 
-export type PickerOption = { id: string; name: string; isBillable?: boolean };
+export type PickerOption = {
+  id: string;
+  name: string;
+  isBillable?: boolean;
+  projectId?: string | null;
+};
 
 /** Projects and categories available to the signed-in user for time entry. */
 export const getTimeOptions = createServerFn({ method: "GET" })
@@ -70,7 +75,7 @@ export const getTimeOptions = createServerFn({ method: "GET" })
         .order("name"),
       context.supabase
         .from("categories")
-        .select("id, name, is_billable")
+        .select("id, name, is_billable, project_id")
         .eq("organization_id", data.organizationId)
         .eq("is_active", true)
         .order("name"),
@@ -89,6 +94,7 @@ export const getTimeOptions = createServerFn({ method: "GET" })
         id: c.id,
         name: c.name,
         isBillable: c.is_billable,
+        projectId: c.project_id,
       })) satisfies PickerOption[],
     };
   });

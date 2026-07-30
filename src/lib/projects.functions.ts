@@ -32,6 +32,7 @@ export type ClientRow = {
   contactEmail: string | null;
   isActive: boolean;
   projectCount: number;
+  projects: { id: string; name: string }[];
 };
 
 export type CategoryRow = {
@@ -39,6 +40,8 @@ export type CategoryRow = {
   name: string;
   isBillable: boolean;
   isActive: boolean;
+  projectId: string | null;
+  projectName: string | null;
 };
 
 export type OrgPerson = { userId: string; name: string; email: string; role: string };
@@ -67,7 +70,7 @@ export const getProjectsPage = createServerFn({ method: "GET" })
           .order("name"),
         context.supabase
           .from("categories")
-          .select("id, name, is_billable, is_active")
+          .select("id, name, is_billable, is_active, project_id")
           .eq("organization_id", data.organizationId)
           .order("name"),
         context.supabase
@@ -93,10 +96,14 @@ export const getProjectsPage = createServerFn({ method: "GET" })
       membersByProject.set(row.project_id, list);
     }
 
-    const projectCountByClient = new Map<string, number>();
+    const projectsByClient = new Map<string, { id: string; name: string }[]>();
+    const projectNames = new Map<string, string>();
     for (const row of projectsResult.data ?? []) {
+      projectNames.set(row.id, row.name);
       if (!row.client_id) continue;
-      projectCountByClient.set(row.client_id, (projectCountByClient.get(row.client_id) ?? 0) + 1);
+      const list = projectsByClient.get(row.client_id) ?? [];
+      list.push({ id: row.id, name: row.name });
+      projectsByClient.set(row.client_id, list);
     }
 
     const peopleRows = peopleResult.data ?? [];
@@ -149,13 +156,16 @@ export const getProjectsPage = createServerFn({ method: "GET" })
         name: row.name,
         contactEmail: row.contact_email,
         isActive: row.is_active,
-        projectCount: projectCountByClient.get(row.id) ?? 0,
+        projectCount: projectsByClient.get(row.id)?.length ?? 0,
+        projects: projectsByClient.get(row.id) ?? [],
       })) satisfies ClientRow[],
       categories: (categoriesResult.data ?? []).map((row) => ({
         id: row.id,
         name: row.name,
         isBillable: row.is_billable,
         isActive: row.is_active,
+        projectId: row.project_id,
+        projectName: row.project_id ? (projectNames.get(row.project_id) ?? null) : null,
       })) satisfies CategoryRow[],
       people,
     };
@@ -286,10 +296,24 @@ export const saveCategory = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => categorySchema.parse(data))
   .handler(async ({ data, context }) => {
     await requireOrgRole(context.supabase, context.userId, data.organizationId, "manager");
+
+    const projectId = data.projectId ?? null;
+    if (projectId) {
+      const { data: project, error: projectError } = await context.supabase
+        .from("projects")
+        .select("id")
+        .eq("id", projectId)
+        .eq("organization_id", data.organizationId)
+        .maybeSingle();
+      if (projectError) throw new Error(projectError.message);
+      if (!project) throw new Error("Project not found in this organization");
+    }
+
     const payload = {
       organization_id: data.organizationId,
       name: data.name,
       is_billable: data.isBillable,
+      project_id: projectId,
     };
 
     if (data.id) {
