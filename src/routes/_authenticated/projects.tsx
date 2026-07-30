@@ -344,6 +344,7 @@ function ProjectsPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Name</TableHead>
+                        <TableHead>Project</TableHead>
                         <TableHead>Billable</TableHead>
                         <TableHead>Status</TableHead>
                         {canManage ? <TableHead className="text-right">Actions</TableHead> : null}
@@ -353,6 +354,11 @@ function ProjectsPage() {
                       {categories.map((category) => (
                         <TableRow key={category.id}>
                           <TableCell className="font-medium">{category.name}</TableCell>
+                          <TableCell>
+                            {category.projectName ?? (
+                              <span className="text-muted-foreground">All projects</span>
+                            )}
+                          </TableCell>
                           <TableCell>{category.isBillable ? "Yes" : "No"}</TableCell>
                           <TableCell>
                             <Badge variant={category.isActive ? "default" : "secondary"}>
