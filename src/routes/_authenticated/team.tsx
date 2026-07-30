@@ -78,6 +78,7 @@ function TeamPage() {
   const fetchTeam = useServerFn(getTeam);
   const invite = useServerFn(inviteTeammate);
   const revoke = useServerFn(revokeInvitation);
+  const resend = useServerFn(resendInvitation);
   const changeRole = useServerFn(updateMemberRole);
   const setActive = useServerFn(setMemberActive);
 
