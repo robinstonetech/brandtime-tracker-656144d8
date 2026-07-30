@@ -51,7 +51,12 @@ export type TimerState = {
   description: string | null;
 } | null;
 
-export type PickerOption = { id: string; name: string; isBillable?: boolean };
+export type PickerOption = {
+  id: string;
+  name: string;
+  isBillable?: boolean;
+  projectId?: string | null;
+};
 
 /** Projects and categories available to the signed-in user for time entry. */
 export const getTimeOptions = createServerFn({ method: "GET" })
