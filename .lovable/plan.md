@@ -1,73 +1,50 @@
-## Goal
+## Applying the schema through the Supabase SQL editor
 
-Apply `db/migrations/01…11` to the **development** project (`jwydonacprzffqasxhav`) from your own machine, then commit regenerated types back into this project.
+No local checkout needed. You'll copy each SQL file from the Lovable Code Editor into the dashboard.
 
-## What you run locally (nothing here changes your repo)
+### Where the files are
+In Lovable: Code Editor → `supabase/migrations/`. Ten files, already ordered:
 
-### 1. Install / update the Supabase CLI
-```bash
-# macOS
-brew install supabase/tap/supabase
-# Windows (scoop)
-scoop install supabase
-# any OS, no install
-npx supabase --version
-```
-
-### 2. Log in and link to the dev project
-```bash
-supabase login          # opens a browser, pastes back an access token
-supabase link --project-ref jwydonacprzffqasxhav
-```
-It will ask for the dev project's **database password** (Supabase dashboard → Project Settings → Database → reset it if unknown).
-
-### 3. Choose how to apply
-
-**Option A — SQL editor (simplest, no local repo needed).**
-Open the dev project's SQL editor and paste each file's contents in order `01 → 10`, running one at a time and checking for errors before the next. Skip `11_seed_dev.sql` unless you want demo data.
-
-**Option B — CLI push (recommended, repeatable for prod later).**
-Copy the files into a `supabase/migrations/` folder with timestamp-prefixed names so the CLI tracks them:
 ```text
-supabase/migrations/
-  20260730090001_extensions_and_enums.sql
-  20260730090002_organizations.sql
-  ... (same order as 01…10)
-  20260730090011_seed_dev.sql   # dev only — leave out of the prod push
-```
-Then:
-```bash
-supabase db push
-supabase migration list      # confirm every file shows applied
-```
-
-### 4. Finish the seed (only if you ran 11)
-Sign up in the app first, then in the SQL editor grant yourself owner:
-```sql
-insert into public.memberships (organization_id, user_id, role)
-select o.id, '<your-auth-user-uuid>', 'owner'
-from public.organizations o where o.slug = 'robinstone-demo';
+20260730090001_extensions_and_enums.sql
+20260730090002_organizations.sql
+20260730090003_profiles.sql
+20260730090004_memberships_and_roles.sql
+20260730090005_invitations.sql
+20260730090006_projects_and_categories.sql
+20260730090007_time_entries.sql
+20260730090008_rls_core.sql
+20260730090009_rls_work.sql
+20260730090010_storage.sql
 ```
 
-### 5. Regenerate types
-```bash
-supabase gen types typescript --project-id jwydonacprzffqasxhav \
-  > src/integrations/supabase/database.types.ts
-```
-This overwrites the placeholder file. Two ways to get it into this project:
-- push the file to the connected Git repo, or
-- paste the generated file contents into chat / drop the file in, and I'll write it to `src/integrations/supabase/database.types.ts` for you.
+Plus `supabase/seed_dev.sql` (dev project only, run last).
 
-### 6. Verify
-- Admin → Environment page: badge reads **DEVELOPMENT**, health check green.
-- `Database` type no longer has `Tables: Record<string, never>`.
+### Steps
+1. Open the **dev** project (`jwydonacprzffqasxhav`) → SQL Editor → New query.
+2. Open file 1 in the Lovable Code Editor, select all, paste into the editor, Run.
+3. Confirm "Success. No rows returned", then repeat for files 2 → 10 **in order**. Order matters: enums and helper functions are referenced by later files.
+4. Run `supabase/seed_dev.sql` last, on the dev project only.
+5. Spot-check: Database → Tables should list organizations, profiles, memberships, invitations, clients, projects, categories, timesheets, time_entries, running_timers; Storage should show `org-logos` and `avatars`.
 
-## Notes
+If a statement fails partway, fix and re-run only that file — each file is written to be self-contained.
 
-- Do **not** touch production (`sezrcfpntuvpjdsnkedz`) yet. When dev is verified, re-link to the prod ref and push the exact same files, minus `11_seed_dev.sql`.
-- Migrations are forward-only; if something's wrong, add a new file rather than editing an applied one.
-- If `01_extensions_and_enums.sql` errors on an extension, run it as the project owner in the SQL editor — hosted Supabase already has `pgcrypto`/`uuid-ossp` available under the `extensions` schema.
+### Generating `database.types.ts` without the CLI
+The dashboard can emit types directly: Project Settings → API → **Generating types** section, or hit the types endpoint. Easiest path:
 
-## Next step for me
+1. Dashboard → API Docs (top-left icon) → **Tables and Views** → the introduction page has a TypeScript types block, or
+2. Use the direct URL in a browser while logged in:
+   `https://supabase.com/dashboard/project/jwydonacprzffqasxhav/api?page=tables-intro`
 
-Once you confirm the migrations are applied and hand over the generated types, I'll commit `database.types.ts` and move on to auth + the app shell (sign-up, sign-in, invitation acceptance, org-scoped layout).
+Copy the full generated `Database` type, paste it into chat, and I'll write it into `src/integrations/supabase/database.types.ts`, replacing the placeholder.
+
+### After that
+Once types land, next build step is auth + app shell:
+- `/auth` public route (email + password sign-up/sign-in)
+- `_authenticated/` gated layout with org-aware sidebar nav
+- Org bootstrap flow for self-serve admins, invite-acceptance route for teammates
+- Branding provider injecting org CSS variables
+
+### Technical notes
+- The production project (`sezrcfpntuvpjdsnkedz`) gets the same ten files later, without `seed_dev.sql`.
+- `database.types.ts` is shared by both environments; the schemas must stay identical, so always apply dev first and promote the same files unchanged.
