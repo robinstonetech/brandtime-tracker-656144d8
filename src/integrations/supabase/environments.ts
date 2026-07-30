@@ -29,10 +29,8 @@ export const SUPABASE_ENVIRONMENTS: Record<SupabaseEnvironmentName, SupabaseEnvi
   production: {
     name: "production",
     label: "Production",
-    // Fill these in when the production Supabase project is ready.
-    // Until then the resolver falls back to development and flags it.
-    url: "",
-    publishableKey: "",
+    url: "https://sezrcfpntuvpjdsnkedz.supabase.co",
+    publishableKey: "sb_publishable__XCfIzP3TyfiTxVbvDKDWA_M9mLm3mW",
     serviceRoleEnvVar: "PROD_SUPABASE_SERVICE_ROLE_KEY",
   },
 };
