@@ -160,19 +160,15 @@ function InvitePage() {
                   onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
                   className="space-y-4"
                 >
-                  <FormItem>
-                    <FormLabel>Organization</FormLabel>
-                    <FormControl>
-                      <Input value={data.organizationName} readOnly disabled />
-                    </FormControl>
-                  </FormItem>
+                  <div className="space-y-2">
+                    <Label>Organization</Label>
+                    <Input value={data.organizationName} readOnly disabled />
+                  </div>
 
-                  <FormItem>
-                    <FormLabel>Email address</FormLabel>
-                    <FormControl>
-                      <Input value={data.email} readOnly disabled />
-                    </FormControl>
-                  </FormItem>
+                  <div className="space-y-2">
+                    <Label>Email address</Label>
+                    <Input value={data.email} readOnly disabled />
+                  </div>
 
                   <FormField
                     control={form.control}
