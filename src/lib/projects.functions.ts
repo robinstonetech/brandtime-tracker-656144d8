@@ -76,7 +76,7 @@ export const getProjectsPage = createServerFn({ method: "GET" })
           .eq("organization_id", data.organizationId),
         context.supabase
           .from("memberships")
-          .select("user_id, role, profiles:user_id(full_name, email)")
+          .select("user_id, role")
           .eq("organization_id", data.organizationId)
           .eq("is_active", true),
       ]);
