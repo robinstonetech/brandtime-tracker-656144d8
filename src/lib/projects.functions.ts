@@ -96,10 +96,14 @@ export const getProjectsPage = createServerFn({ method: "GET" })
       membersByProject.set(row.project_id, list);
     }
 
-    const projectCountByClient = new Map<string, number>();
+    const projectsByClient = new Map<string, { id: string; name: string }[]>();
+    const projectNames = new Map<string, string>();
     for (const row of projectsResult.data ?? []) {
+      projectNames.set(row.id, row.name);
       if (!row.client_id) continue;
-      projectCountByClient.set(row.client_id, (projectCountByClient.get(row.client_id) ?? 0) + 1);
+      const list = projectsByClient.get(row.client_id) ?? [];
+      list.push({ id: row.id, name: row.name });
+      projectsByClient.set(row.client_id, list);
     }
 
     const peopleRows = peopleResult.data ?? [];
