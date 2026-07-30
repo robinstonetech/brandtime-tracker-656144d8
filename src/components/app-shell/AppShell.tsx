@@ -29,10 +29,12 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/timesheets", label: "Timesheets", icon: CalendarClock },
+  { to: "/approvals", label: "Approvals", icon: CheckCircle2 },
   { to: "/projects", label: "Projects", icon: FolderKanban },
   { to: "/team", label: "Team", icon: Users },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
+
 
 function initials(value: string): string {
   return value
