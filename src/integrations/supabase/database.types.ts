@@ -1,184 +1,120 @@
 /**
  * Database types for the externally managed Supabase project.
  *
- * NOTE: hand-derived from supabase/migrations/*.sql. Replace with the
- * authoritative generated file when convenient:
+ * Generated from project jwydonacprzffqasxhav. Regenerate with:
  *   supabase gen types typescript --project-id jwydonacprzffqasxhav \
  *     > src/integrations/supabase/database.types.ts
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5";
+  };
+  graphql_public: {
+    Tables: {
+      [_ in never]: never;
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json;
+          operationName?: string;
+          query?: string;
+          variables?: Json;
+        };
+        Returns: Json;
+      };
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
   public: {
     Tables: {
-      organizations: {
+      categories: {
         Row: {
+          color: string | null;
+          created_at: string;
           id: string;
-          name: string;
-          slug: string;
-          week_starts_on: number;
-          timezone: string;
-          default_daily_minutes: number;
           is_active: boolean;
-          created_by: string | null;
-          created_at: string;
-          updated_at: string;
-          deleted_at: string | null;
-        };
-        Insert: {
-          id?: string;
+          is_billable: boolean;
           name: string;
-          slug: string;
-          week_starts_on?: number;
-          timezone?: string;
-          default_daily_minutes?: number;
-          is_active?: boolean;
-          created_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-          deleted_at?: string | null;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          slug?: string;
-          week_starts_on?: number;
-          timezone?: string;
-          default_daily_minutes?: number;
-          is_active?: boolean;
-          created_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-          deleted_at?: string | null;
-        };
-        Relationships: [];
-      };
-      organization_branding: {
-        Row: {
           organization_id: string;
-          logo_url: string | null;
-          logo_dark_url: string | null;
-          favicon_url: string | null;
-          primary_color: string;
-          accent_color: string;
-          background_color: string;
-          foreground_color: string;
-          font_family: string | null;
-          product_name: string;
-          support_email: string | null;
-          created_at: string;
           updated_at: string;
         };
         Insert: {
-          organization_id: string;
-          logo_url?: string | null;
-          logo_dark_url?: string | null;
-          favicon_url?: string | null;
-          primary_color?: string;
-          accent_color?: string;
-          background_color?: string;
-          foreground_color?: string;
-          font_family?: string | null;
-          product_name?: string;
-          support_email?: string | null;
+          color?: string | null;
           created_at?: string;
+          id?: string;
+          is_active?: boolean;
+          is_billable?: boolean;
+          name: string;
+          organization_id: string;
           updated_at?: string;
         };
         Update: {
-          organization_id?: string;
-          logo_url?: string | null;
-          logo_dark_url?: string | null;
-          favicon_url?: string | null;
-          primary_color?: string;
-          accent_color?: string;
-          background_color?: string;
-          foreground_color?: string;
-          font_family?: string | null;
-          product_name?: string;
-          support_email?: string | null;
+          color?: string | null;
           created_at?: string;
+          id?: string;
+          is_active?: boolean;
+          is_billable?: boolean;
+          name?: string;
+          organization_id?: string;
           updated_at?: string;
         };
         Relationships: [
           {
-            foreignKeyName: "organization_branding_organization_id_fkey";
+            foreignKeyName: "categories_organization_id_fkey";
             columns: ["organization_id"];
-            isOneToOne: true;
+            isOneToOne: false;
             referencedRelation: "organizations";
             referencedColumns: ["id"];
           },
         ];
       };
-      profiles: {
+      clients: {
         Row: {
-          id: string;
-          email: string;
-          full_name: string | null;
-          avatar_url: string | null;
-          job_title: string | null;
-          timezone: string;
+          contact_email: string | null;
           created_at: string;
-          updated_at: string;
-        };
-        Insert: {
+          deleted_at: string | null;
           id: string;
-          email: string;
-          full_name?: string | null;
-          avatar_url?: string | null;
-          job_title?: string | null;
-          timezone?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          email?: string;
-          full_name?: string | null;
-          avatar_url?: string | null;
-          job_title?: string | null;
-          timezone?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      memberships: {
-        Row: {
-          id: string;
-          organization_id: string;
-          user_id: string;
-          role: Database["public"]["Enums"]["app_role"];
           is_active: boolean;
-          invited_by: string | null;
-          joined_at: string;
-          created_at: string;
+          name: string;
+          organization_id: string;
           updated_at: string;
         };
         Insert: {
-          id?: string;
-          organization_id: string;
-          user_id: string;
-          role?: Database["public"]["Enums"]["app_role"];
-          is_active?: boolean;
-          invited_by?: string | null;
-          joined_at?: string;
+          contact_email?: string | null;
           created_at?: string;
+          deleted_at?: string | null;
+          id?: string;
+          is_active?: boolean;
+          name: string;
+          organization_id: string;
           updated_at?: string;
         };
         Update: {
-          id?: string;
-          organization_id?: string;
-          user_id?: string;
-          role?: Database["public"]["Enums"]["app_role"];
-          is_active?: boolean;
-          invited_by?: string | null;
-          joined_at?: string;
+          contact_email?: string | null;
           created_at?: string;
+          deleted_at?: string | null;
+          id?: string;
+          is_active?: boolean;
+          name?: string;
+          organization_id?: string;
           updated_at?: string;
         };
         Relationships: [
           {
-            foreignKeyName: "memberships_organization_id_fkey";
+            foreignKeyName: "clients_organization_id_fkey";
             columns: ["organization_id"];
             isOneToOne: false;
             referencedRelation: "organizations";
@@ -188,48 +124,48 @@ export type Database = {
       };
       invitations: {
         Row: {
-          id: string;
-          organization_id: string;
+          accepted_at: string | null;
+          accepted_by: string | null;
+          created_at: string;
           email: string;
+          expires_at: string;
+          id: string;
+          invited_by: string | null;
+          organization_id: string;
+          revoked_at: string | null;
           role: Database["public"]["Enums"]["app_role"];
           status: Database["public"]["Enums"]["invitation_status"];
           token_hash: string;
-          invited_by: string | null;
-          accepted_by: string | null;
-          expires_at: string;
-          accepted_at: string | null;
-          revoked_at: string | null;
-          created_at: string;
           updated_at: string;
         };
         Insert: {
-          id?: string;
-          organization_id: string;
+          accepted_at?: string | null;
+          accepted_by?: string | null;
+          created_at?: string;
           email: string;
+          expires_at?: string;
+          id?: string;
+          invited_by?: string | null;
+          organization_id: string;
+          revoked_at?: string | null;
           role?: Database["public"]["Enums"]["app_role"];
           status?: Database["public"]["Enums"]["invitation_status"];
           token_hash: string;
-          invited_by?: string | null;
-          accepted_by?: string | null;
-          expires_at?: string;
-          accepted_at?: string | null;
-          revoked_at?: string | null;
-          created_at?: string;
           updated_at?: string;
         };
         Update: {
-          id?: string;
-          organization_id?: string;
+          accepted_at?: string | null;
+          accepted_by?: string | null;
+          created_at?: string;
           email?: string;
+          expires_at?: string;
+          id?: string;
+          invited_by?: string | null;
+          organization_id?: string;
+          revoked_at?: string | null;
           role?: Database["public"]["Enums"]["app_role"];
           status?: Database["public"]["Enums"]["invitation_status"];
           token_hash?: string;
-          invited_by?: string | null;
-          accepted_by?: string | null;
-          expires_at?: string;
-          accepted_at?: string | null;
-          revoked_at?: string | null;
-          created_at?: string;
           updated_at?: string;
         };
         Relationships: [
@@ -242,40 +178,43 @@ export type Database = {
           },
         ];
       };
-      clients: {
+      memberships: {
         Row: {
-          id: string;
-          organization_id: string;
-          name: string;
-          contact_email: string | null;
-          is_active: boolean;
           created_at: string;
+          id: string;
+          invited_by: string | null;
+          is_active: boolean;
+          joined_at: string;
+          organization_id: string;
+          role: Database["public"]["Enums"]["app_role"];
           updated_at: string;
-          deleted_at: string | null;
+          user_id: string;
         };
         Insert: {
-          id?: string;
-          organization_id: string;
-          name: string;
-          contact_email?: string | null;
-          is_active?: boolean;
           created_at?: string;
+          id?: string;
+          invited_by?: string | null;
+          is_active?: boolean;
+          joined_at?: string;
+          organization_id: string;
+          role?: Database["public"]["Enums"]["app_role"];
           updated_at?: string;
-          deleted_at?: string | null;
+          user_id: string;
         };
         Update: {
-          id?: string;
-          organization_id?: string;
-          name?: string;
-          contact_email?: string | null;
-          is_active?: boolean;
           created_at?: string;
+          id?: string;
+          invited_by?: string | null;
+          is_active?: boolean;
+          joined_at?: string;
+          organization_id?: string;
+          role?: Database["public"]["Enums"]["app_role"];
           updated_at?: string;
-          deleted_at?: string | null;
+          user_id?: string;
         };
         Relationships: [
           {
-            foreignKeyName: "clients_organization_id_fkey";
+            foreignKeyName: "memberships_organization_id_fkey";
             columns: ["organization_id"];
             isOneToOne: false;
             referencedRelation: "organizations";
@@ -283,60 +222,278 @@ export type Database = {
           },
         ];
       };
-      projects: {
+      organization_branding: {
         Row: {
-          id: string;
-          organization_id: string;
-          client_id: string | null;
-          name: string;
-          code: string | null;
-          description: string | null;
-          status: Database["public"]["Enums"]["project_status"];
-          is_billable: boolean;
-          default_hourly_rate: number | null;
-          budget_minutes: number | null;
-          starts_on: string | null;
-          ends_on: string | null;
-          created_by: string | null;
+          accent_color: string;
+          background_color: string;
           created_at: string;
+          favicon_url: string | null;
+          font_family: string | null;
+          foreground_color: string;
+          logo_dark_url: string | null;
+          logo_url: string | null;
+          organization_id: string;
+          primary_color: string;
+          product_name: string;
+          support_email: string | null;
           updated_at: string;
-          deleted_at: string | null;
         };
         Insert: {
-          id?: string;
-          organization_id: string;
-          client_id?: string | null;
-          name: string;
-          code?: string | null;
-          description?: string | null;
-          status?: Database["public"]["Enums"]["project_status"];
-          is_billable?: boolean;
-          default_hourly_rate?: number | null;
-          budget_minutes?: number | null;
-          starts_on?: string | null;
-          ends_on?: string | null;
-          created_by?: string | null;
+          accent_color?: string;
+          background_color?: string;
           created_at?: string;
+          favicon_url?: string | null;
+          font_family?: string | null;
+          foreground_color?: string;
+          logo_dark_url?: string | null;
+          logo_url?: string | null;
+          organization_id: string;
+          primary_color?: string;
+          product_name?: string;
+          support_email?: string | null;
           updated_at?: string;
-          deleted_at?: string | null;
         };
         Update: {
+          accent_color?: string;
+          background_color?: string;
+          created_at?: string;
+          favicon_url?: string | null;
+          font_family?: string | null;
+          foreground_color?: string;
+          logo_dark_url?: string | null;
+          logo_url?: string | null;
+          organization_id?: string;
+          primary_color?: string;
+          product_name?: string;
+          support_email?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "organization_branding_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: true;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      organizations: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          default_daily_minutes: number;
+          deleted_at: string | null;
+          id: string;
+          is_active: boolean;
+          name: string;
+          slug: string;
+          timezone: string;
+          updated_at: string;
+          week_starts_on: number;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          default_daily_minutes?: number;
+          deleted_at?: string | null;
+          id?: string;
+          is_active?: boolean;
+          name: string;
+          slug: string;
+          timezone?: string;
+          updated_at?: string;
+          week_starts_on?: number;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          default_daily_minutes?: number;
+          deleted_at?: string | null;
+          id?: string;
+          is_active?: boolean;
+          name?: string;
+          slug?: string;
+          timezone?: string;
+          updated_at?: string;
+          week_starts_on?: number;
+        };
+        Relationships: [];
+      };
+      profiles: {
+        Row: {
+          avatar_url: string | null;
+          created_at: string;
+          email: string;
+          full_name: string | null;
+          id: string;
+          job_title: string | null;
+          timezone: string;
+          updated_at: string;
+        };
+        Insert: {
+          avatar_url?: string | null;
+          created_at?: string;
+          email: string;
+          full_name?: string | null;
+          id: string;
+          job_title?: string | null;
+          timezone?: string;
+          updated_at?: string;
+        };
+        Update: {
+          avatar_url?: string | null;
+          created_at?: string;
+          email?: string;
+          full_name?: string | null;
+          id?: string;
+          job_title?: string | null;
+          timezone?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      project_branding: {
+        Row: {
+          accent_color: string | null;
+          created_at: string;
+          logo_url: string | null;
+          organization_id: string;
+          primary_color: string | null;
+          project_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          accent_color?: string | null;
+          created_at?: string;
+          logo_url?: string | null;
+          organization_id: string;
+          primary_color?: string | null;
+          project_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          accent_color?: string | null;
+          created_at?: string;
+          logo_url?: string | null;
+          organization_id?: string;
+          primary_color?: string | null;
+          project_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "project_branding_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "project_branding_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: true;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      project_members: {
+        Row: {
+          created_at: string;
+          hourly_rate: number | null;
+          id: string;
+          organization_id: string;
+          project_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          hourly_rate?: number | null;
+          id?: string;
+          organization_id: string;
+          project_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          hourly_rate?: number | null;
           id?: string;
           organization_id?: string;
-          client_id?: string | null;
-          name?: string;
-          code?: string | null;
-          description?: string | null;
-          status?: Database["public"]["Enums"]["project_status"];
-          is_billable?: boolean;
-          default_hourly_rate?: number | null;
+          project_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "project_members_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "project_members_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      projects: {
+        Row: {
+          budget_minutes: number | null;
+          client_id: string | null;
+          code: string | null;
+          created_at: string;
+          created_by: string | null;
+          default_hourly_rate: number | null;
+          deleted_at: string | null;
+          description: string | null;
+          ends_on: string | null;
+          id: string;
+          is_billable: boolean;
+          name: string;
+          organization_id: string;
+          starts_on: string | null;
+          status: Database["public"]["Enums"]["project_status"];
+          updated_at: string;
+        };
+        Insert: {
           budget_minutes?: number | null;
-          starts_on?: string | null;
-          ends_on?: string | null;
-          created_by?: string | null;
+          client_id?: string | null;
+          code?: string | null;
           created_at?: string;
-          updated_at?: string;
+          created_by?: string | null;
+          default_hourly_rate?: number | null;
           deleted_at?: string | null;
+          description?: string | null;
+          ends_on?: string | null;
+          id?: string;
+          is_billable?: boolean;
+          name: string;
+          organization_id: string;
+          starts_on?: string | null;
+          status?: Database["public"]["Enums"]["project_status"];
+          updated_at?: string;
+        };
+        Update: {
+          budget_minutes?: number | null;
+          client_id?: string | null;
+          code?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          default_hourly_rate?: number | null;
+          deleted_at?: string | null;
+          description?: string | null;
+          ends_on?: string | null;
+          id?: string;
+          is_billable?: boolean;
+          name?: string;
+          organization_id?: string;
+          starts_on?: string | null;
+          status?: Database["public"]["Enums"]["project_status"];
+          updated_at?: string;
         };
         Relationships: [
           {
@@ -355,165 +512,195 @@ export type Database = {
           },
         ];
       };
-      project_branding: {
+      running_timers: {
         Row: {
-          project_id: string;
-          organization_id: string;
-          logo_url: string | null;
-          primary_color: string | null;
-          accent_color: string | null;
+          category_id: string | null;
           created_at: string;
+          description: string | null;
+          organization_id: string;
+          project_id: string | null;
+          started_at: string;
           updated_at: string;
+          user_id: string;
         };
         Insert: {
-          project_id: string;
-          organization_id: string;
-          logo_url?: string | null;
-          primary_color?: string | null;
-          accent_color?: string | null;
+          category_id?: string | null;
           created_at?: string;
+          description?: string | null;
+          organization_id: string;
+          project_id?: string | null;
+          started_at?: string;
           updated_at?: string;
+          user_id: string;
         };
         Update: {
-          project_id?: string;
-          organization_id?: string;
-          logo_url?: string | null;
-          primary_color?: string | null;
-          accent_color?: string | null;
+          category_id?: string | null;
           created_at?: string;
+          description?: string | null;
+          organization_id?: string;
+          project_id?: string | null;
+          started_at?: string;
           updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "project_branding_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: true;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      project_members: {
-        Row: {
-          id: string;
-          project_id: string;
-          organization_id: string;
-          user_id: string;
-          hourly_rate: number | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          project_id: string;
-          organization_id: string;
-          user_id: string;
-          hourly_rate?: number | null;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          project_id?: string;
-          organization_id?: string;
           user_id?: string;
-          hourly_rate?: number | null;
-          created_at?: string;
         };
         Relationships: [
           {
-            foreignKeyName: "project_members_project_id_fkey";
-            columns: ["project_id"];
+            foreignKeyName: "running_timers_category_id_fkey";
+            columns: ["category_id"];
             isOneToOne: false;
-            referencedRelation: "projects";
+            referencedRelation: "categories";
             referencedColumns: ["id"];
           },
-        ];
-      };
-      categories: {
-        Row: {
-          id: string;
-          organization_id: string;
-          name: string;
-          color: string | null;
-          is_billable: boolean;
-          is_active: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          name: string;
-          color?: string | null;
-          is_billable?: boolean;
-          is_active?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          organization_id?: string;
-          name?: string;
-          color?: string | null;
-          is_billable?: boolean;
-          is_active?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
           {
-            foreignKeyName: "categories_organization_id_fkey";
+            foreignKeyName: "running_timers_organization_id_fkey";
             columns: ["organization_id"];
             isOneToOne: false;
             referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "running_timers_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      time_entries: {
+        Row: {
+          category_id: string | null;
+          created_at: string;
+          deleted_at: string | null;
+          description: string | null;
+          duration_minutes: number;
+          ended_at: string | null;
+          entry_date: string;
+          hourly_rate: number | null;
+          id: string;
+          is_billable: boolean;
+          organization_id: string;
+          project_id: string | null;
+          source: string;
+          started_at: string | null;
+          timesheet_id: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          category_id?: string | null;
+          created_at?: string;
+          deleted_at?: string | null;
+          description?: string | null;
+          duration_minutes: number;
+          ended_at?: string | null;
+          entry_date: string;
+          hourly_rate?: number | null;
+          id?: string;
+          is_billable?: boolean;
+          organization_id: string;
+          project_id?: string | null;
+          source?: string;
+          started_at?: string | null;
+          timesheet_id?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          category_id?: string | null;
+          created_at?: string;
+          deleted_at?: string | null;
+          description?: string | null;
+          duration_minutes?: number;
+          ended_at?: string | null;
+          entry_date?: string;
+          hourly_rate?: number | null;
+          id?: string;
+          is_billable?: boolean;
+          organization_id?: string;
+          project_id?: string | null;
+          source?: string;
+          started_at?: string | null;
+          timesheet_id?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "time_entries_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "time_entries_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "time_entries_timesheet_id_fkey";
+            columns: ["timesheet_id"];
+            isOneToOne: false;
+            referencedRelation: "timesheets";
             referencedColumns: ["id"];
           },
         ];
       };
       timesheets: {
         Row: {
+          created_at: string;
           id: string;
           organization_id: string;
-          user_id: string;
-          period_start: string;
           period_end: string;
-          status: Database["public"]["Enums"]["timesheet_status"];
-          submitted_at: string | null;
+          period_start: string;
+          review_note: string | null;
           reviewed_at: string | null;
           reviewed_by: string | null;
-          review_note: string | null;
+          status: Database["public"]["Enums"]["timesheet_status"];
+          submitted_at: string | null;
           total_minutes: number;
-          created_at: string;
           updated_at: string;
+          user_id: string;
         };
         Insert: {
+          created_at?: string;
           id?: string;
           organization_id: string;
-          user_id: string;
-          period_start: string;
           period_end: string;
-          status?: Database["public"]["Enums"]["timesheet_status"];
-          submitted_at?: string | null;
+          period_start: string;
+          review_note?: string | null;
           reviewed_at?: string | null;
           reviewed_by?: string | null;
-          review_note?: string | null;
+          status?: Database["public"]["Enums"]["timesheet_status"];
+          submitted_at?: string | null;
           total_minutes?: number;
-          created_at?: string;
           updated_at?: string;
+          user_id: string;
         };
         Update: {
+          created_at?: string;
           id?: string;
           organization_id?: string;
-          user_id?: string;
-          period_start?: string;
           period_end?: string;
-          status?: Database["public"]["Enums"]["timesheet_status"];
-          submitted_at?: string | null;
+          period_start?: string;
+          review_note?: string | null;
           reviewed_at?: string | null;
           reviewed_by?: string | null;
-          review_note?: string | null;
+          status?: Database["public"]["Enums"]["timesheet_status"];
+          submitted_at?: string | null;
           total_minutes?: number;
-          created_at?: string;
           updated_at?: string;
+          user_id?: string;
         };
         Relationships: [
           {
@@ -525,156 +712,42 @@ export type Database = {
           },
         ];
       };
-      time_entries: {
-        Row: {
-          id: string;
-          organization_id: string;
-          timesheet_id: string | null;
-          user_id: string;
-          project_id: string | null;
-          category_id: string | null;
-          entry_date: string;
-          duration_minutes: number;
-          started_at: string | null;
-          ended_at: string | null;
-          description: string | null;
-          is_billable: boolean;
-          hourly_rate: number | null;
-          source: string;
-          created_at: string;
-          updated_at: string;
-          deleted_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          timesheet_id?: string | null;
-          user_id: string;
-          project_id?: string | null;
-          category_id?: string | null;
-          entry_date: string;
-          duration_minutes: number;
-          started_at?: string | null;
-          ended_at?: string | null;
-          description?: string | null;
-          is_billable?: boolean;
-          hourly_rate?: number | null;
-          source?: string;
-          created_at?: string;
-          updated_at?: string;
-          deleted_at?: string | null;
-        };
-        Update: {
-          id?: string;
-          organization_id?: string;
-          timesheet_id?: string | null;
-          user_id?: string;
-          project_id?: string | null;
-          category_id?: string | null;
-          entry_date?: string;
-          duration_minutes?: number;
-          started_at?: string | null;
-          ended_at?: string | null;
-          description?: string | null;
-          is_billable?: boolean;
-          hourly_rate?: number | null;
-          source?: string;
-          created_at?: string;
-          updated_at?: string;
-          deleted_at?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "time_entries_timesheet_id_fkey";
-            columns: ["timesheet_id"];
-            isOneToOne: false;
-            referencedRelation: "timesheets";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "time_entries_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "time_entries_category_id_fkey";
-            columns: ["category_id"];
-            isOneToOne: false;
-            referencedRelation: "categories";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      running_timers: {
-        Row: {
-          user_id: string;
-          organization_id: string;
-          project_id: string | null;
-          category_id: string | null;
-          description: string | null;
-          started_at: string;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          user_id: string;
-          organization_id: string;
-          project_id?: string | null;
-          category_id?: string | null;
-          description?: string | null;
-          started_at?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          user_id?: string;
-          organization_id?: string;
-          project_id?: string | null;
-          category_id?: string | null;
-          description?: string | null;
-          started_at?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "running_timers_organization_id_fkey";
-            columns: ["organization_id"];
-            isOneToOne: false;
-            referencedRelation: "organizations";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
     };
-    Views: Record<string, never>;
+    Views: {
+      [_ in never]: never;
+    };
     Functions: {
-      accept_invitation: {
-        Args: { _token_hash: string };
-        Returns: string;
-      };
-      is_org_member: {
-        Args: { _org_id: string; _user_id?: string };
+      accept_invitation: { Args: { _token_hash: string }; Returns: string };
+      has_min_role: {
+        Args: {
+          _org_id: string;
+          _role: Database["public"]["Enums"]["app_role"];
+          _user_id?: string;
+        };
         Returns: boolean;
       };
       has_role: {
-        Args: { _org_id: string; _role: Database["public"]["Enums"]["app_role"]; _user_id?: string };
+        Args: {
+          _org_id: string;
+          _role: Database["public"]["Enums"]["app_role"];
+          _user_id?: string;
+        };
         Returns: boolean;
       };
-      has_min_role: {
-        Args: { _org_id: string; _role: Database["public"]["Enums"]["app_role"]; _user_id?: string };
+      is_org_member: {
+        Args: { _org_id: string; _user_id?: string };
         Returns: boolean;
       };
     };
     Enums: {
       app_role: "owner" | "admin" | "manager" | "member";
       invitation_status: "pending" | "accepted" | "revoked" | "expired";
-      timesheet_status: "draft" | "submitted" | "approved" | "rejected";
       project_status: "active" | "on_hold" | "archived";
+      timesheet_status: "draft" | "submitted" | "approved" | "rejected";
     };
-    CompositeTypes: Record<string, never>;
+    CompositeTypes: {
+      [_ in never]: never;
+    };
   };
 };
 
@@ -684,3 +757,17 @@ export type Tables<T extends keyof PublicSchema["Tables"]> = PublicSchema["Table
 export type TablesInsert<T extends keyof PublicSchema["Tables"]> = PublicSchema["Tables"][T]["Insert"];
 export type TablesUpdate<T extends keyof PublicSchema["Tables"]> = PublicSchema["Tables"][T]["Update"];
 export type Enums<T extends keyof PublicSchema["Enums"]> = PublicSchema["Enums"][T];
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {
+      app_role: ["owner", "admin", "manager", "member"],
+      invitation_status: ["pending", "accepted", "revoked", "expired"],
+      project_status: ["active", "on_hold", "archived"],
+      timesheet_status: ["draft", "submitted", "approved", "rejected"],
+    },
+  },
+} as const;
