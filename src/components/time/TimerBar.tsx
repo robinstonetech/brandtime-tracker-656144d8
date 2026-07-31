@@ -64,15 +64,18 @@ export function TimerBar({ organizationId, timer, projects, categories, disabled
   };
 
   const startMutation = useMutation({
-    mutationFn: () =>
-      start({
+    mutationFn: async () => {
+      if (projectId === NONE) throw new Error("Select a project");
+      if (categoryId === NONE) throw new Error("Select a category");
+      return start({
         data: {
           organizationId,
-          projectId: projectId === NONE ? null : projectId,
-          categoryId: categoryId === NONE ? null : categoryId,
+          projectId,
+          categoryId,
           description: description.trim() || null,
         },
-      }),
+      });
+    },
     onSuccess: () => {
       invalidate();
       toast.success("Timer started");
