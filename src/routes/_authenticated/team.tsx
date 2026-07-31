@@ -125,15 +125,30 @@ function TeamPage() {
 
   const resendMutation = useMutation({
     mutationFn: (id: string) => resend({ data: { id } }),
-    onSuccess: (result) => {
+    onSuccess: (result, id) => {
       void invalidate();
-      setLastLink(result.inviteUrl);
+      setVisibleLinks((prev) => ({ ...prev, [id]: result.inviteUrl }));
       toast.success(
         result.delivered ? "Invitation email resent" : "New link generated — share it below",
       );
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const linkMutation = useMutation({
+    mutationFn: (id: string) => fetchLink({ data: { id } }),
+    onSuccess: (result, id) => {
+      void invalidate();
+      setVisibleLinks((prev) => ({ ...prev, [id]: result.inviteUrl }));
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const copyLink = (link: string) => {
+    void navigator.clipboard.writeText(link);
+    toast.success("Link copied");
+  };
+
 
 
   const roleMutation = useMutation({
