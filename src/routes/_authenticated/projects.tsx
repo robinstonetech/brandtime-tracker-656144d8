@@ -422,6 +422,15 @@ function ProjectsPage() {
                               >
                                 {category.isActive ? "Deactivate" : "Activate"}
                               </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => setCategoryToDelete(category)}
+                              >
+                                <Trash2 className="mr-2 size-4" /> Delete
+                              </Button>
+
                             </TableCell>
                           ) : null}
                         </TableRow>
