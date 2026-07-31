@@ -444,7 +444,38 @@ function ProjectsPage() {
         </Tabs>
       )}
 
+      <AlertDialog
+        open={categoryToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setCategoryToDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete “{categoryToDelete?.name}”?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the category from{" "}
+              {categoryToDelete?.projectName ?? "its project"}. Time already logged keeps its
+              hours but loses this category. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={categoryDeleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={categoryDeleteMutation.isPending}
+              onClick={(event) => {
+                event.preventDefault();
+                if (categoryToDelete) categoryDeleteMutation.mutate({ id: categoryToDelete.id });
+              }}
+            >
+              {categoryDeleteMutation.isPending ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <ProjectDialog
+
         organizationId={organizationId}
         value={projectDialog}
         clients={clients}
