@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Copy, UserPlus } from "lucide-react";
+import { Copy, Link as LinkIcon, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
