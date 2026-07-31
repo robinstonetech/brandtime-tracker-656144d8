@@ -430,7 +430,7 @@ function ProjectsPage() {
                               >
                                 <Trash2 className="mr-2 size-4" /> Delete
                               </Button>
-
+                              </div>
                             </TableCell>
                           ) : null}
                         </TableRow>
