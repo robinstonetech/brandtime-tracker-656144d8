@@ -148,13 +148,12 @@ export function TimerBar({ organizationId, timer, projects, categories, disabled
         />
       </div>
       <div className="w-48">
-        <label className="mb-1 block text-xs font-medium text-muted-foreground">Project</label>
+        <label className="mb-1 block text-xs font-medium text-muted-foreground">Project *</label>
         <Select value={projectId} onValueChange={setProjectId} disabled={disabled}>
           <SelectTrigger>
-            <SelectValue placeholder="No project" />
+            <SelectValue placeholder="Select a project" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={NONE}>No project</SelectItem>
             {projects.map((project) => (
               <SelectItem key={project.id} value={project.id}>
                 {project.name}
@@ -164,13 +163,18 @@ export function TimerBar({ organizationId, timer, projects, categories, disabled
         </Select>
       </div>
       <div className="w-44">
-        <label className="mb-1 block text-xs font-medium text-muted-foreground">Category</label>
-        <Select value={categoryId} onValueChange={setCategoryId} disabled={disabled}>
+        <label className="mb-1 block text-xs font-medium text-muted-foreground">Category *</label>
+        <Select
+          value={categoryId}
+          onValueChange={setCategoryId}
+          disabled={disabled || projectId === NONE}
+        >
           <SelectTrigger>
-            <SelectValue placeholder="None" />
+            <SelectValue
+              placeholder={projectId === NONE ? "Select a project first" : "Select a category"}
+            />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={NONE}>None</SelectItem>
             {availableCategories.map((category) => (
               <SelectItem key={category.id} value={category.id}>
                 {category.name}
@@ -179,9 +183,13 @@ export function TimerBar({ organizationId, timer, projects, categories, disabled
           </SelectContent>
         </Select>
       </div>
-      <Button onClick={() => startMutation.mutate()} disabled={disabled || startMutation.isPending}>
+      <Button
+        onClick={() => startMutation.mutate()}
+        disabled={disabled || startMutation.isPending || projectId === NONE || categoryId === NONE}
+      >
         <Play className="mr-2 size-4" /> Start timer
       </Button>
     </div>
   );
 }
+
