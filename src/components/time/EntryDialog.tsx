@@ -90,12 +90,14 @@ export function EntryDialog({
     mutationFn: async () => {
       const minutes = parseDurationToMinutes(duration);
       if (minutes === null) throw new Error("Enter a duration like 1h 30m, 1.5 or 90");
+      if (projectId === NONE) throw new Error("Select a project");
+      if (categoryId === NONE) throw new Error("Select a category");
       const payload = {
         organizationId,
         entryDate,
         durationMinutes: minutes,
-        projectId: projectId === NONE ? null : projectId,
-        categoryId: categoryId === NONE ? null : categoryId,
+        projectId,
+        categoryId,
         description: description.trim() || null,
         isBillable,
       };
