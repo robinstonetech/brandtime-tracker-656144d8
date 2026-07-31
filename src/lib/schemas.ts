@@ -9,16 +9,16 @@ export const weekSchema = orgSchema.extend({
 });
 
 export const startTimerSchema = orgSchema.extend({
-  projectId: z.string().uuid().nullable().optional(),
-  categoryId: z.string().uuid().nullable().optional(),
+  projectId: z.string().uuid({ message: "Select a project" }),
+  categoryId: z.string().uuid({ message: "Select a category" }),
   description: z.string().trim().max(500).nullable().optional(),
 });
 
 export const entrySchema = orgSchema.extend({
   entryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   durationMinutes: z.number().int().min(1).max(1440),
-  projectId: z.string().uuid().nullable().optional(),
-  categoryId: z.string().uuid().nullable().optional(),
+  projectId: z.string().uuid({ message: "Select a project" }),
+  categoryId: z.string().uuid({ message: "Select a category" }),
   description: z.string().trim().max(500).nullable().optional(),
   isBillable: z.boolean().default(true),
 });

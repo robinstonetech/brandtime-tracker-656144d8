@@ -90,12 +90,14 @@ export function EntryDialog({
     mutationFn: async () => {
       const minutes = parseDurationToMinutes(duration);
       if (minutes === null) throw new Error("Enter a duration like 1h 30m, 1.5 or 90");
+      if (projectId === NONE) throw new Error("Select a project");
+      if (categoryId === NONE) throw new Error("Select a category");
       const payload = {
         organizationId,
         entryDate,
         durationMinutes: minutes,
-        projectId: projectId === NONE ? null : projectId,
-        categoryId: categoryId === NONE ? null : categoryId,
+        projectId,
+        categoryId,
         description: description.trim() || null,
         isBillable,
       };
@@ -144,13 +146,12 @@ export function EntryDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Project</Label>
+              <Label>Project *</Label>
               <Select value={projectId} onValueChange={setProjectId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="No project" />
+                  <SelectValue placeholder="Select a project" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NONE}>No project</SelectItem>
                   {projects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.name}
@@ -160,13 +161,18 @@ export function EntryDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Category</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
+              <Label>Category *</Label>
+              <Select
+                value={categoryId}
+                onValueChange={setCategoryId}
+                disabled={projectId === NONE}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="None" />
+                  <SelectValue
+                    placeholder={projectId === NONE ? "Select a project first" : "Select a category"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NONE}>None</SelectItem>
                   {availableCategories.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
@@ -176,6 +182,7 @@ export function EntryDialog({
               </Select>
             </div>
           </div>
+
 
           <div className="space-y-2">
             <Label htmlFor="entry-description">Description</Label>
@@ -204,7 +211,10 @@ export function EntryDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+          <Button
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || projectId === NONE || categoryId === NONE}
+          >
             {entry ? "Save changes" : "Log time"}
           </Button>
         </DialogFooter>
