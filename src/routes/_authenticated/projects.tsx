@@ -93,6 +93,8 @@ function ProjectsPage() {
   const [projectDialog, setProjectDialog] = useState<ProjectRow | "new" | null>(null);
   const [clientDialog, setClientDialog] = useState<ClientRow | "new" | null>(null);
   const [categoryDialog, setCategoryDialog] = useState<CategoryRow | "new" | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<CategoryRow | null>(null);
+
 
   const pageQuery = useQuery({
     queryKey: ["projects-page", organizationId],
@@ -129,6 +131,20 @@ function ProjectsPage() {
     onSuccess: () => void invalidate(),
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const removeCategory = useServerFn(deleteCategory);
+  const categoryDeleteMutation = useMutation({
+    mutationFn: (input: { id: string }) =>
+      removeCategory({ data: { organizationId: organizationId!, id: input.id } }),
+    onSuccess: () => {
+      setCategoryToDelete(null);
+      void invalidate();
+      toast.success("Category deleted");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+
 
   if (!organizationId) {
     return (
