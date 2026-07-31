@@ -364,9 +364,13 @@ function ProjectsPage() {
                           </TableCell>
                           <TableCell>{category.isBillable ? "Yes" : "No"}</TableCell>
                           <TableCell>
-                            <Badge variant={category.isActive ? "default" : "secondary"}>
+                            <Badge
+                              variant={category.isActive ? "default" : "secondary"}
+                              className="text-foreground"
+                            >
                               {category.isActive ? "Active" : "Inactive"}
                             </Badge>
+
                           </TableCell>
                           {canManage ? (
                             <TableCell className="space-x-2 text-right">
