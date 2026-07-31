@@ -146,13 +146,12 @@ export function EntryDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Project</Label>
+              <Label>Project *</Label>
               <Select value={projectId} onValueChange={setProjectId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="No project" />
+                  <SelectValue placeholder="Select a project" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NONE}>No project</SelectItem>
                   {projects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.name}
@@ -162,13 +161,18 @@ export function EntryDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Category</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
+              <Label>Category *</Label>
+              <Select
+                value={categoryId}
+                onValueChange={setCategoryId}
+                disabled={projectId === NONE}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="None" />
+                  <SelectValue
+                    placeholder={projectId === NONE ? "Select a project first" : "Select a category"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NONE}>None</SelectItem>
                   {availableCategories.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
@@ -178,6 +182,7 @@ export function EntryDialog({
               </Select>
             </div>
           </div>
+
 
           <div className="space-y-2">
             <Label htmlFor="entry-description">Description</Label>
