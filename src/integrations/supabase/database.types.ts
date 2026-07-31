@@ -49,7 +49,7 @@ export type Database = {
           is_billable: boolean;
           name: string;
           organization_id: string;
-          project_id: string | null;
+          project_id: string;
           updated_at: string;
         };
         Insert: {
@@ -60,7 +60,7 @@ export type Database = {
           is_billable?: boolean;
           name: string;
           organization_id: string;
-          project_id?: string | null;
+          project_id: string;
           updated_at?: string;
         };
         Update: {
@@ -71,7 +71,8 @@ export type Database = {
           is_billable?: boolean;
           name?: string;
           organization_id?: string;
-          project_id?: string | null;
+          project_id?: string;
+
           updated_at?: string;
         };
         Relationships: [
