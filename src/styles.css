@@ -47,6 +47,8 @@
   --color-sage: var(--sage);
   --color-forest: var(--forest);
   --color-bark: var(--bark);
+  --color-soft-red: var(--soft-red);
+  --color-soft-red-foreground: var(--soft-red-foreground);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
