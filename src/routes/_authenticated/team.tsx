@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/table";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import {
+  getInvitationLink,
   getTeam,
   inviteTeammate,
   resendInvitation,
@@ -44,6 +45,7 @@ import {
   setMemberActive,
   updateMemberRole,
 } from "@/lib/team.functions";
+
 
 export const Route = createFileRoute("/_authenticated/team")({
   head: () => ({
