@@ -402,7 +402,8 @@ function ProjectsPage() {
 
                           </TableCell>
                           {canManage ? (
-                            <TableCell className="space-x-2 text-right">
+                            <TableCell>
+                              <div className="flex items-start justify-end gap-2">
                               <Button
                                 variant="ghost"
                                 size="sm"
