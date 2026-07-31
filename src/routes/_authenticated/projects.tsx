@@ -402,7 +402,8 @@ function ProjectsPage() {
 
                           </TableCell>
                           {canManage ? (
-                            <TableCell className="space-x-2 text-right">
+                            <TableCell>
+                              <div className="flex items-start justify-end gap-2">
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -429,7 +430,7 @@ function ProjectsPage() {
                               >
                                 <Trash2 className="mr-2 size-4" /> Delete
                               </Button>
-
+                              </div>
                             </TableCell>
                           ) : null}
                         </TableRow>
