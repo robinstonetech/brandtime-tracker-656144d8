@@ -315,7 +315,24 @@ function TeamPage() {
                     <TableBody>
                       {invitations.map((invitation) => (
                         <TableRow key={invitation.id}>
-                          <TableCell className="font-medium">{invitation.email}</TableCell>
+                          <TableCell className="font-medium">
+                            <div className="space-y-2">
+                              <div>{invitation.email}</div>
+                              {visibleLinks[invitation.id] ? (
+                                <div className="flex max-w-md gap-2">
+                                  <Input readOnly value={visibleLinks[invitation.id]} />
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    aria-label="Copy invitation link"
+                                    onClick={() => copyLink(visibleLinks[invitation.id])}
+                                  >
+                                    <Copy className="size-4" />
+                                  </Button>
+                                </div>
+                              ) : null}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <Badge variant="secondary">{invitation.role}</Badge>
                           </TableCell>
@@ -323,31 +340,65 @@ function TeamPage() {
                             {new Date(invitation.expiresAt).toLocaleDateString()}
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="mr-2"
-                              disabled={
-                                resendMutation.isPending &&
+                            <div className="flex items-start justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={
+                                  linkMutation.isPending && linkMutation.variables === invitation.id
+                                }
+                                onClick={() =>
+                                  visibleLinks[invitation.id]
+                                    ? setVisibleLinks((prev) => {
+                                        const next = { ...prev };
+                                        delete next[invitation.id];
+                                        return next;
+                                      })
+                                    : linkMutation.mutate(invitation.id)
+                                }
+                              >
+                                <LinkIcon className="mr-2 size-4" />
+                                {linkMutation.isPending && linkMutation.variables === invitation.id
+                                  ? "Loading…"
+                                  : visibleLinks[invitation.id]
+                                    ? "Hide link"
+                                    : "Show link"}
+                              </Button>
+                              {visibleLinks[invitation.id] ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => copyLink(visibleLinks[invitation.id])}
+                                >
+                                  <Copy className="mr-2 size-4" /> Copy
+                                </Button>
+                              ) : null}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={
+                                  resendMutation.isPending &&
+                                  resendMutation.variables === invitation.id
+                                }
+                                onClick={() => resendMutation.mutate(invitation.id)}
+                              >
+                                {resendMutation.isPending &&
                                 resendMutation.variables === invitation.id
-                              }
-                              onClick={() => resendMutation.mutate(invitation.id)}
-                            >
-                              {resendMutation.isPending &&
-                              resendMutation.variables === invitation.id
-                                ? "Sending…"
-                                : "Resend"}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => revokeMutation.mutate(invitation.id)}
-                            >
-                              Revoke
-                            </Button>
+                                  ? "Sending…"
+                                  : "Resend"}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => revokeMutation.mutate(invitation.id)}
+                              >
+                                Revoke
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
+
                     </TableBody>
                   </Table>
                 )}
