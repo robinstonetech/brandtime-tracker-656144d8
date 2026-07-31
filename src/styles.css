@@ -47,6 +47,8 @@
   --color-sage: var(--sage);
   --color-forest: var(--forest);
   --color-bark: var(--bark);
+  --color-soft-red: var(--soft-red);
+  --color-soft-red-foreground: var(--soft-red-foreground);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -98,6 +100,9 @@
   --sage: oklch(0.78 0.05 145);
   --forest: oklch(0.34 0.06 150);
   --bark: oklch(0.45 0.06 60);
+  --soft-red: oklch(0.62 0.13 25);
+  --soft-red-foreground: oklch(0.99 0.005 95);
+
 
   --chart-1: oklch(0.55 0.1 150);
   --chart-2: oklch(0.7 0.1 80);
