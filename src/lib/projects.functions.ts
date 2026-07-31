@@ -7,9 +7,11 @@ import {
   clientSchema,
   orgIdActiveSchema,
   orgIdArchivedSchema,
+  orgIdSchema,
   orgSchema,
   projectSchema,
 } from "@/lib/schemas";
+
 
 export type ProjectRow = {
   id: string;
@@ -348,3 +350,19 @@ export const setCategoryActive = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const deleteCategory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => orgIdSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    await requireOrgRole(context.supabase, context.userId, data.organizationId, "manager");
+    // Time entries keep their hours; category_id is "on delete set null".
+    const { error } = await context.supabase
+      .from("categories")
+      .delete()
+      .eq("id", data.id)
+      .eq("organization_id", data.organizationId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
