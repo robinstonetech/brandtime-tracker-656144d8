@@ -246,6 +246,40 @@ export const resendInvitation = createServerFn({ method: "POST" })
     return { inviteUrl: url, delivered: result.delivered };
   });
 
+/** Issues a fresh invitation link without sending an email, for manual sharing. */
+export const getInvitationLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => idSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: invite, error: readError } = await context.supabase
+      .from("invitations")
+      .select("organization_id, status")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    if (!invite) throw new Error("Invitation not found");
+    if (invite.status !== "pending") throw new Error("Only pending invitations have links");
+
+    await requireOrgRole(context.supabase, context.userId, invite.organization_id, "admin");
+
+    const token = generateInvitationToken();
+    const tokenHash = await hashInvitationToken(token);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    const { error: updateError } = await context.supabase
+      .from("invitations")
+      .update({ token_hash: tokenHash, expires_at: expiresAt })
+      .eq("id", data.id);
+    if (updateError) throw new Error(updateError.message);
+
+    const origin =
+      getRequestHeader("origin") ??
+      (getRequestHeader("host") ? `https://${getRequestHeader("host")}` : "https://mytimesheets.app");
+
+    return { inviteUrl: invitationUrl(origin, token) };
+  });
+
+
 export const updateMemberRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => memberRoleSchema.parse(data))

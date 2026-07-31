@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Copy, UserPlus } from "lucide-react";
+import { Copy, Link as LinkIcon, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/table";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import {
+  getInvitationLink,
   getTeam,
   inviteTeammate,
   resendInvitation,
@@ -44,6 +45,7 @@ import {
   setMemberActive,
   updateMemberRole,
 } from "@/lib/team.functions";
+
 
 export const Route = createFileRoute("/_authenticated/team")({
   head: () => ({
@@ -79,12 +81,15 @@ function TeamPage() {
   const invite = useServerFn(inviteTeammate);
   const revoke = useServerFn(revokeInvitation);
   const resend = useServerFn(resendInvitation);
+  const fetchLink = useServerFn(getInvitationLink);
   const changeRole = useServerFn(updateMemberRole);
   const setActive = useServerFn(setMemberActive);
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<(typeof ROLES)[number]>("member");
+  const [visibleLinks, setVisibleLinks] = useState<Record<string, string>>({});
+
   const [lastLink, setLastLink] = useState<string | null>(null);
 
   const teamQuery = useQuery({
@@ -120,15 +125,30 @@ function TeamPage() {
 
   const resendMutation = useMutation({
     mutationFn: (id: string) => resend({ data: { id } }),
-    onSuccess: (result) => {
+    onSuccess: (result, id) => {
       void invalidate();
-      setLastLink(result.inviteUrl);
+      setVisibleLinks((prev) => ({ ...prev, [id]: result.inviteUrl }));
       toast.success(
         result.delivered ? "Invitation email resent" : "New link generated — share it below",
       );
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const linkMutation = useMutation({
+    mutationFn: (id: string) => fetchLink({ data: { id } }),
+    onSuccess: (result, id) => {
+      void invalidate();
+      setVisibleLinks((prev) => ({ ...prev, [id]: result.inviteUrl }));
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const copyLink = (link: string) => {
+    void navigator.clipboard.writeText(link);
+    toast.success("Link copied");
+  };
+
 
 
   const roleMutation = useMutation({
@@ -295,7 +315,24 @@ function TeamPage() {
                     <TableBody>
                       {invitations.map((invitation) => (
                         <TableRow key={invitation.id}>
-                          <TableCell className="font-medium">{invitation.email}</TableCell>
+                          <TableCell className="font-medium">
+                            <div className="space-y-2">
+                              <div>{invitation.email}</div>
+                              {visibleLinks[invitation.id] ? (
+                                <div className="flex max-w-md gap-2">
+                                  <Input readOnly value={visibleLinks[invitation.id]} />
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    aria-label="Copy invitation link"
+                                    onClick={() => copyLink(visibleLinks[invitation.id])}
+                                  >
+                                    <Copy className="size-4" />
+                                  </Button>
+                                </div>
+                              ) : null}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <Badge variant="secondary">{invitation.role}</Badge>
                           </TableCell>
@@ -303,31 +340,65 @@ function TeamPage() {
                             {new Date(invitation.expiresAt).toLocaleDateString()}
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="mr-2"
-                              disabled={
-                                resendMutation.isPending &&
+                            <div className="flex items-start justify-end gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={
+                                  linkMutation.isPending && linkMutation.variables === invitation.id
+                                }
+                                onClick={() =>
+                                  visibleLinks[invitation.id]
+                                    ? setVisibleLinks((prev) => {
+                                        const next = { ...prev };
+                                        delete next[invitation.id];
+                                        return next;
+                                      })
+                                    : linkMutation.mutate(invitation.id)
+                                }
+                              >
+                                <LinkIcon className="mr-2 size-4" />
+                                {linkMutation.isPending && linkMutation.variables === invitation.id
+                                  ? "Loading…"
+                                  : visibleLinks[invitation.id]
+                                    ? "Hide link"
+                                    : "Show link"}
+                              </Button>
+                              {visibleLinks[invitation.id] ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => copyLink(visibleLinks[invitation.id])}
+                                >
+                                  <Copy className="mr-2 size-4" /> Copy
+                                </Button>
+                              ) : null}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={
+                                  resendMutation.isPending &&
+                                  resendMutation.variables === invitation.id
+                                }
+                                onClick={() => resendMutation.mutate(invitation.id)}
+                              >
+                                {resendMutation.isPending &&
                                 resendMutation.variables === invitation.id
-                              }
-                              onClick={() => resendMutation.mutate(invitation.id)}
-                            >
-                              {resendMutation.isPending &&
-                              resendMutation.variables === invitation.id
-                                ? "Sending…"
-                                : "Resend"}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => revokeMutation.mutate(invitation.id)}
-                            >
-                              Revoke
-                            </Button>
+                                  ? "Sending…"
+                                  : "Resend"}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => revokeMutation.mutate(invitation.id)}
+                              >
+                                Revoke
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
+
                     </TableBody>
                   </Table>
                 )}
