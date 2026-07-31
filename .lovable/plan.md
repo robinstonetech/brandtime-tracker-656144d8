@@ -1,46 +1,18 @@
-## Goal
+## State check
 
-Today `clients → projects` already exists (`projects.client_id`), but categories are flat org-level records with no link to a project. This change gives each category an owning project (org-wide when none is set), shows each client's projects on the Clients tab, and filters the category picker by the selected project when logging time.
+Migrations 13a and 13 are applied, and the app code already matches: `saveCategory` requires a project, `categorySchema.projectId` is a required uuid, the categories table/dialog on `/projects` show and require a project, and `EntryDialog` / `TimerBar` filter categories by the selected project. No functional work is outstanding.
 
-## 1. Database migration (for your review, applied by you)
+Two leftovers still reflect the old "org-wide categories" model:
 
-New file `db/migrations/12_categories_project_link.sql`, also appended to `supabase/apply_all_dev.sql`:
+1. `src/integrations/supabase/database.types.ts` — `categories.project_id` is typed `string | null` (Row/Insert/Update), but the column is now `NOT NULL`. Cosmetic today, but it lets new code write a null project and only fail at runtime.
+2. Seed SQL — `db/migrations/11_seed_dev.sql`, `supabase/seed_dev.sql`, and the categories block inside `supabase/apply_all_dev.sql` insert categories with no `project_id` and conflict on `(organization_id, name)`. Re-running any of them against a fresh dev database now fails on both the not-null column and the dropped unique constraint.
 
-- Add `project_id uuid references public.projects(id) on delete cascade` to `public.categories`.
-- Replace the `unique (organization_id, name)` constraint with a pair that allows the same name under different projects:
-  - unique index on `(organization_id, name)` where `project_id is null` (org-wide categories)
-  - unique index on `(project_id, name)` where `project_id is not null`
-- Add index `categories_project_idx on public.categories (project_id)`.
-- A trigger/check keeping `categories.project_id` in the same organization as `categories.organization_id`.
-- No grant changes needed (existing grants cover the table). RLS policies in `09_rls_work.sql` are org-scoped and continue to apply unchanged.
+## Proposed changes
 
-Existing categories keep `project_id = null` and stay available to every project, so nothing currently logged breaks.
+- Update `database.types.ts` so `categories.project_id` is `string` in Row and Insert and `string?` in Update.
+- Rewrite the categories seed block (all three files, kept identical) to insert per project: look up each seeded project by code (`ACME-001`, `INT-001`) and give each its own Development / Meetings / Admin / Leave rows, with `on conflict (project_id, name) do nothing`.
+- Append `13a_backfill_orphan_categories.sql` and `13_categories_require_project.sql` to `supabase/apply_all_dev.sql` so the bundled script matches the numbered migrations (13a is a no-op on a fresh database).
 
-## 2. Server functions
+## Verification
 
-`src/lib/schemas.ts`
-- `categorySchema` gains `projectId: uuid | null` (optional, defaults null).
-
-`src/lib/projects.functions.ts`
-- `getProjectsPage`: select `project_id` on categories; add `projectId` / `projectName` to `CategoryRow`; add a `projects: {id,name}[]` list per client (`ClientRow.projects`) built from the already-fetched projects instead of just `projectCount`.
-- `saveCategory`: persist `project_id`, validating that the project belongs to the same organization.
-
-`src/lib/time.functions.ts`
-- `getPickers`: return `projectId` on each category option so the client can filter.
-- Keep `getWeek` unchanged (entries still embed `categories(name)`).
-
-## 3. UI
-
-`src/routes/_authenticated/projects.tsx`
-- Clients tab: replace the plain `Projects` count cell with the count plus the project names for that client (wrapped badges, "—" when none).
-- Categories tab: new "Project" column showing the owning project or "All projects"; the category dialog gets a project select (`All projects` + org projects).
-
-`src/components/time/EntryDialog.tsx` and `src/components/time/TimerBar.tsx`
-- Filter the category options to those with `projectId === selectedProjectId` or `projectId === null`.
-- When the project changes and the chosen category no longer applies, reset the category to none.
-
-## 4. Verification
-
-Typecheck, then load `/projects` in a browser to confirm the Clients tab lists projects and the category dialog saves a project link; check the entry dialog narrows categories per project.
-
-Note: the migration must be run against your Supabase project (dev first) and the generated `database.types.ts` regenerated afterward — I'll update the local types file by hand in the same change so the code typechecks before you apply it.
+Run a typecheck, then open `/projects` and the entry dialog to confirm the category flows still work against the migrated database.
