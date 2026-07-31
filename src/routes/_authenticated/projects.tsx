@@ -225,7 +225,7 @@ function ProjectsPage() {
                           </TableCell>
                           <TableCell>{project.clientName ?? "—"}</TableCell>
                           <TableCell>
-                            <Badge variant={project.status === "active" ? "default" : "secondary"}>
+                            <Badge variant="secondary">
                               {project.status.replace("_", " ")}
                             </Badge>
                             {!project.isBillable ? (
@@ -393,10 +393,7 @@ function ProjectsPage() {
                           </TableCell>
                           <TableCell>{category.isBillable ? "Yes" : "No"}</TableCell>
                           <TableCell>
-                            <Badge
-                              variant={category.isActive ? "default" : "secondary"}
-                              className="text-foreground"
-                            >
+                            <Badge variant="secondary">
                               {category.isActive ? "Active" : "Inactive"}
                             </Badge>
 

@@ -264,7 +264,7 @@ function TeamPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={member.isActive ? "default" : "outline"}>
+                        <Badge variant="secondary">
                           {member.isActive ? "Active" : "Deactivated"}
                         </Badge>
                       </TableCell>
