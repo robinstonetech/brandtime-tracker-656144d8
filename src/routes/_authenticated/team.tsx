@@ -81,12 +81,15 @@ function TeamPage() {
   const invite = useServerFn(inviteTeammate);
   const revoke = useServerFn(revokeInvitation);
   const resend = useServerFn(resendInvitation);
+  const fetchLink = useServerFn(getInvitationLink);
   const changeRole = useServerFn(updateMemberRole);
   const setActive = useServerFn(setMemberActive);
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<(typeof ROLES)[number]>("member");
+  const [visibleLinks, setVisibleLinks] = useState<Record<string, string>>({});
+
   const [lastLink, setLastLink] = useState<string | null>(null);
 
   const teamQuery = useQuery({
