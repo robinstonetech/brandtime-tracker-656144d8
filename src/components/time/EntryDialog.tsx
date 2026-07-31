@@ -211,7 +211,10 @@ export function EntryDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+          <Button
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || projectId === NONE || categoryId === NONE}
+          >
             {entry ? "Save changes" : "Log time"}
           </Button>
         </DialogFooter>
