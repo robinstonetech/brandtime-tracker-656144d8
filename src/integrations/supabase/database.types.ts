@@ -532,7 +532,7 @@ export type Database = {
           organization_id: string;
           project_id: string | null;
           started_at: string;
-          task_id?: string | null;
+          task_id: string | null;
           updated_at: string;
           user_id: string;
         };
