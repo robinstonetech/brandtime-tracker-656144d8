@@ -5,10 +5,6 @@
   "observability": {
     "enabled": true
   },
-  "main": "dist/server/server.js",
-  "assets": {
-    "directory": "dist/client"
-  },
   "compatibility_flags": [
     "nodejs_compat",
     "nodejs_compat_populate_process_env"
