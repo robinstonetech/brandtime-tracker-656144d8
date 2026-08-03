@@ -49,6 +49,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/hooks/useWorkspace";
+import { formatMinutes } from "@/lib/time-utils";
 import {
   archiveProject,
   deleteCategory,
@@ -63,6 +64,9 @@ import {
   type OrgPerson,
   type ProjectRow,
 } from "@/lib/projects.functions";
+import { TaskDialog } from "@/components/tasks/TaskDialog";
+import { deleteTask, getTasks, setTaskStatus } from "@/lib/tasks.functions";
+import type { TaskRow } from "@/lib/tasks-types";
 
 
 
@@ -94,6 +98,8 @@ function ProjectsPage() {
   const [clientDialog, setClientDialog] = useState<ClientRow | "new" | null>(null);
   const [categoryDialog, setCategoryDialog] = useState<CategoryRow | "new" | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<CategoryRow | null>(null);
+  const [taskDialog, setTaskDialog] = useState<TaskRow | "new" | null>(null);
+  const [taskToDelete, setTaskToDelete] = useState<TaskRow | null>(null);
 
 
   const pageQuery = useQuery({
@@ -144,7 +150,33 @@ function ProjectsPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const fetchTasks = useServerFn(getTasks);
+  const tasksQuery = useQuery({
+    queryKey: ["tasks", organizationId],
+    queryFn: () => fetchTasks({ data: { organizationId: organizationId! } }),
+    enabled: Boolean(organizationId),
+  });
+  const invalidateTasks = () => queryClient.invalidateQueries({ queryKey: ["tasks"] });
 
+  const updateTaskStatus = useServerFn(setTaskStatus);
+  const taskStatusMutation = useMutation({
+    mutationFn: (input: { id: string; status: "open" | "done" }) =>
+      updateTaskStatus({ data: { organizationId: organizationId!, ...input } }),
+    onSuccess: () => void invalidateTasks(),
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const removeTask = useServerFn(deleteTask);
+  const taskDeleteMutation = useMutation({
+    mutationFn: (input: { id: string }) =>
+      removeTask({ data: { organizationId: organizationId!, id: input.id } }),
+    onSuccess: () => {
+      setTaskToDelete(null);
+      void invalidateTasks();
+      toast.success("Task deleted");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
 
   if (!organizationId) {
     return (
@@ -162,6 +194,7 @@ function ProjectsPage() {
   const clients = pageQuery.data?.clients ?? [];
   const categories = pageQuery.data?.categories ?? [];
   const people = pageQuery.data?.people ?? [];
+  const tasks = tasksQuery.data ?? [];
 
   return (
     <div className="space-y-6">
@@ -180,6 +213,7 @@ function ProjectsPage() {
             <TabsTrigger value="projects">Projects</TabsTrigger>
             <TabsTrigger value="clients">Clients</TabsTrigger>
             <TabsTrigger value="categories">Categories</TabsTrigger>
+            <TabsTrigger value="tasks">Tasks</TabsTrigger>
           </TabsList>
 
           <TabsContent value="projects" className="mt-4">
@@ -438,6 +472,115 @@ function ProjectsPage() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="tasks" className="mt-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <div>
+                  <CardTitle>Tasks</CardTitle>
+                  <CardDescription>
+                    Work items per project and category, optionally assigned to team members.
+                  </CardDescription>
+                </div>
+                {canManage ? (
+                  <Button onClick={() => setTaskDialog("new")}>
+                    <Plus className="mr-2 size-4" /> New task
+                  </Button>
+                ) : null}
+              </CardHeader>
+              <CardContent>
+                {tasksQuery.isLoading ? (
+                  <Skeleton className="h-40" />
+                ) : tasks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No tasks yet.</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Task</TableHead>
+                        <TableHead>Project</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Assigned</TableHead>
+                        <TableHead>Logged</TableHead>
+                        <TableHead>Status</TableHead>
+                        {canManage ? <TableHead className="text-right">Actions</TableHead> : null}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {tasks.map((task) => (
+                        <TableRow key={task.id}>
+                          <TableCell>
+                            <div className="font-medium">{task.title}</div>
+                            {task.dueOn ? (
+                              <div className="text-xs text-muted-foreground">Due {task.dueOn}</div>
+                            ) : null}
+                          </TableCell>
+                          <TableCell>{task.projectName}</TableCell>
+                          <TableCell>{task.categoryName}</TableCell>
+                          <TableCell>
+                            {task.assigneeIds.length === 0 ? (
+                              <span className="text-muted-foreground">Unassigned</span>
+                            ) : (
+                              <div className="flex flex-wrap gap-1">
+                                {task.assigneeIds.map((userId) => {
+                                  const person = people.find((item) => item.userId === userId);
+                                  return (
+                                    <Badge key={userId} variant="outline">
+                                      {person?.name || person?.email || "Member"}
+                                    </Badge>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-mono tabular-nums">
+                            {formatMinutes(task.loggedMinutes)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {task.status === "done" ? "Done" : "Open"}
+                            </Badge>
+                          </TableCell>
+                          {canManage ? (
+                            <TableCell>
+                              <div className="flex items-start justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setTaskDialog(task)}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    taskStatusMutation.mutate({
+                                      id: task.id,
+                                      status: task.status === "done" ? "open" : "done",
+                                    })
+                                  }
+                                >
+                                  {task.status === "done" ? "Reopen" : "Mark done"}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="bg-soft-red text-soft-red-foreground hover:bg-soft-red/90"
+                                  onClick={() => setTaskToDelete(task)}
+                                >
+                                  <Trash2 className="mr-2 size-4" /> Delete
+                                </Button>
+                              </div>
+                            </TableCell>
+                          ) : null}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       )}
 
@@ -470,6 +613,44 @@ function ProjectsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={taskToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setTaskToDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete “{taskToDelete?.title}”?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Time already logged against this task keeps its hours but loses the task link.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={taskDeleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={taskDeleteMutation.isPending}
+              onClick={(event) => {
+                event.preventDefault();
+                if (taskToDelete) taskDeleteMutation.mutate({ id: taskToDelete.id });
+              }}
+            >
+              {taskDeleteMutation.isPending ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <TaskDialog
+        organizationId={organizationId}
+        value={taskDialog}
+        projects={projects}
+        categories={categories}
+        people={people}
+        onClose={() => setTaskDialog(null)}
+        onSaved={() => void invalidateTasks()}
+      />
 
       <ProjectDialog
 

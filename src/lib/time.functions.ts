@@ -47,6 +47,7 @@ export type WeekData = {
 export type TimerState = {
   startedAt: string;
   projectId: string | null;
+  taskId: string | null;
   categoryId: string | null;
   description: string | null;
 } | null;
@@ -178,7 +179,7 @@ export const getRunningTimer = createServerFn({ method: "GET" })
 
     const { data: timer, error } = await context.supabase
       .from("running_timers")
-      .select("started_at, project_id, category_id, description, organization_id")
+      .select("started_at, project_id, category_id, task_id, description, organization_id")
       .eq("user_id", context.userId)
       .maybeSingle();
 
@@ -188,6 +189,7 @@ export const getRunningTimer = createServerFn({ method: "GET" })
     return {
       startedAt: timer.started_at,
       projectId: timer.project_id,
+      taskId: timer.task_id ?? null,
       categoryId: timer.category_id,
       description: timer.description,
     };
@@ -206,6 +208,7 @@ export const startTimer = createServerFn({ method: "POST" })
         organization_id: data.organizationId,
         project_id: data.projectId ?? null,
         category_id: data.categoryId ?? null,
+        task_id: data.taskId ?? null,
         description: data.description ?? null,
         started_at: new Date().toISOString(),
       },
@@ -246,6 +249,7 @@ export const stopTimer = createServerFn({ method: "POST" })
       user_id: context.userId,
       project_id: timer.project_id,
       category_id: timer.category_id,
+      task_id: timer.task_id ?? null,
       entry_date: entryDate,
       duration_minutes: minutes,
       started_at: timer.started_at,
@@ -288,6 +292,7 @@ export const createTimeEntry = createServerFn({ method: "POST" })
       duration_minutes: data.durationMinutes,
       project_id: data.projectId ?? null,
       category_id: data.categoryId ?? null,
+      task_id: data.taskId ?? null,
       description: data.description ?? null,
       is_billable: data.isBillable,
       source: "manual",
@@ -309,6 +314,7 @@ export const updateTimeEntry = createServerFn({ method: "POST" })
         duration_minutes: data.durationMinutes,
         project_id: data.projectId ?? null,
         category_id: data.categoryId ?? null,
+        task_id: data.taskId ?? null,
         description: data.description ?? null,
         is_billable: data.isBillable,
       })
