@@ -699,6 +699,7 @@ export type Database = {
           project_id: string | null;
           source: string;
           started_at: string | null;
+          task_id: string | null;
           timesheet_id: string | null;
           updated_at: string;
           user_id: string;
