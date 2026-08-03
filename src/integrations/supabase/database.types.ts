@@ -532,6 +532,7 @@ export type Database = {
           organization_id: string;
           project_id: string | null;
           started_at: string;
+          task_id: string | null;
           updated_at: string;
           user_id: string;
         };
@@ -542,6 +543,7 @@ export type Database = {
           organization_id: string;
           project_id?: string | null;
           started_at?: string;
+          task_id?: string | null;
           updated_at?: string;
           user_id: string;
         };
@@ -552,6 +554,7 @@ export type Database = {
           organization_id?: string;
           project_id?: string | null;
           started_at?: string;
+          task_id?: string | null;
           updated_at?: string;
           user_id?: string;
         };
@@ -579,6 +582,107 @@ export type Database = {
           },
         ];
       };
+      tasks: {
+        Row: {
+          category_id: string;
+          created_at: string;
+          created_by: string | null;
+          deleted_at: string | null;
+          description: string | null;
+          due_on: string | null;
+          id: string;
+          organization_id: string;
+          project_id: string;
+          status: string;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          category_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          deleted_at?: string | null;
+          description?: string | null;
+          due_on?: string | null;
+          id?: string;
+          organization_id: string;
+          project_id: string;
+          status?: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          category_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          deleted_at?: string | null;
+          description?: string | null;
+          due_on?: string | null;
+          id?: string;
+          organization_id?: string;
+          project_id?: string;
+          status?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tasks_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tasks_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+
+      task_assignees: {
+        Row: {
+          created_at: string;
+          id: string;
+          organization_id: string;
+          task_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          organization_id: string;
+          task_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          organization_id?: string;
+          task_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_assignees_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+
       time_entries: {
         Row: {
           category_id: string | null;
@@ -595,6 +699,7 @@ export type Database = {
           project_id: string | null;
           source: string;
           started_at: string | null;
+          task_id: string | null;
           timesheet_id: string | null;
           updated_at: string;
           user_id: string;
@@ -614,6 +719,7 @@ export type Database = {
           project_id?: string | null;
           source?: string;
           started_at?: string | null;
+          task_id?: string | null;
           timesheet_id?: string | null;
           updated_at?: string;
           user_id: string;
@@ -633,6 +739,7 @@ export type Database = {
           project_id?: string | null;
           source?: string;
           started_at?: string | null;
+          task_id?: string | null;
           timesheet_id?: string | null;
           updated_at?: string;
           user_id?: string;

@@ -11,6 +11,7 @@ export const weekSchema = orgSchema.extend({
 export const startTimerSchema = orgSchema.extend({
   projectId: z.string().uuid({ message: "Select a project" }),
   categoryId: z.string().uuid({ message: "Select a category" }),
+  taskId: z.string().uuid().nullable().optional(),
   description: z.string().trim().max(500).nullable().optional(),
 });
 
@@ -19,6 +20,7 @@ export const entrySchema = orgSchema.extend({
   durationMinutes: z.number().int().min(1).max(1440),
   projectId: z.string().uuid({ message: "Select a project" }),
   categoryId: z.string().uuid({ message: "Select a category" }),
+  taskId: z.string().uuid().nullable().optional(),
   description: z.string().trim().max(500).nullable().optional(),
   isBillable: z.boolean().default(true),
 });
@@ -84,3 +86,21 @@ export const reviewSchema = z.object({
 });
 
 export const acceptInviteSchema = z.object({ token: z.string().trim().min(10).max(200) });
+
+export const taskSchema = orgSchema.extend({
+  id: z.string().uuid().nullable().optional(),
+  projectId: z.string().uuid({ message: "Select a project" }),
+  categoryId: z.string().uuid({ message: "Select a category" }),
+  title: z.string().trim().min(2).max(160),
+  description: z.string().trim().max(2000).nullable().optional(),
+  status: z.enum(["open", "done"]).default("open"),
+  dueOn: z
+    .union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal("")])
+    .nullable()
+    .optional(),
+  assigneeIds: z.array(z.string().uuid()).default([]),
+});
+
+export const taskStatusSchema = orgIdSchema.extend({
+  status: z.enum(["open", "done"]),
+});
