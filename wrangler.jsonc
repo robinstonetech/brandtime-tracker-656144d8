@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "brandtime-tracker",
+  "name": "brandtime-tracker-656144d8",
   "compatibility_date": "2026-08-03",
   "observability": {
     "enabled": true
