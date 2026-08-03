@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { CalendarClock, Clock, FolderKanban, Users } from "lucide-react";
+import { CalendarClock, Clock, FolderKanban, Play, Users } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,8 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { getDashboard } from "@/lib/dashboard.functions";
+import { getMyTasks } from "@/lib/tasks.functions";
+import { startTimer } from "@/lib/time.functions";
 import { currentWeekStartISO, formatDayLabel, formatMinutes, formatWeekRange } from "@/lib/time-utils";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -38,11 +41,34 @@ function DashboardPage() {
   const organizationId = activeMembership?.organizationId ?? null;
   const weekStart = currentWeekStartISO();
 
+  const queryClient = useQueryClient();
   const fetchDashboard = useServerFn(getDashboard);
+  const fetchMyTasks = useServerFn(getMyTasks);
+  const beginTimer = useServerFn(startTimer);
   const dashboardQuery = useQuery({
     queryKey: ["dashboard", organizationId, weekStart],
     queryFn: () => fetchDashboard({ data: { organizationId: organizationId!, weekStart } }),
     enabled: Boolean(organizationId),
+  });
+
+  const tasksQuery = useQuery({
+    queryKey: ["my-tasks", organizationId],
+    queryFn: () => fetchMyTasks({ data: { organizationId: organizationId! } }),
+    enabled: Boolean(organizationId),
+  });
+
+  const startTaskTimer = useMutation({
+    mutationFn: (input: {
+      projectId: string;
+      categoryId: string;
+      taskId: string;
+      description: string;
+    }) => beginTimer({ data: { organizationId: organizationId!, ...input } }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["timer", organizationId] });
+      toast.success("Timer started");
+    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   if (isLoading) {
@@ -136,6 +162,70 @@ function DashboardPage() {
           </Card>
         ))}
       </div>
+
+
+      <Card>
+        <CardHeader>
+          <CardTitle>My tasks</CardTitle>
+          <CardDescription>
+            Open tasks assigned to you, plus tasks nobody has been assigned to yet.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {tasksQuery.isLoading ? (
+            <Skeleton className="h-32" />
+          ) : (tasksQuery.data ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground">No open tasks right now.</p>
+          ) : (
+            (tasksQuery.data ?? []).map((group) => (
+              <div key={group.projectId} className="space-y-3">
+                <h2 className="text-sm font-semibold">{group.projectName}</h2>
+                {group.categories.map((category) => (
+                  <div key={category.categoryId} className="space-y-1">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      {category.categoryName}
+                    </p>
+                    <ul className="divide-y rounded-md border">
+                      {category.tasks.map((task) => (
+                        <li key={task.id} className="flex items-center gap-3 px-3 py-2">
+                          <Button
+                            size="icon"
+                            variant="secondary"
+                            aria-label={`Start timer for ${task.title}`}
+                            disabled={startTaskTimer.isPending}
+                            onClick={() =>
+                              startTaskTimer.mutate({
+                                projectId: task.projectId,
+                                categoryId: task.categoryId,
+                                taskId: task.id,
+                                description: task.title,
+                              })
+                            }
+                          >
+                            <Play className="size-4" />
+                          </Button>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{task.title}</p>
+                            {task.description ? (
+                              <p className="truncate text-xs text-muted-foreground">
+                                {task.description}
+                              </p>
+                            ) : null}
+                          </div>
+                          {task.dueOn ? (
+                            <Badge variant="outline">Due {task.dueOn}</Badge>
+                          ) : null}
+                          {!task.assigned ? <Badge variant="secondary">Unassigned</Badge> : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
