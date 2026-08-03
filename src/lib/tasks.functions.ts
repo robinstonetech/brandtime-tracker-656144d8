@@ -3,97 +3,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireOrgRole } from "@/lib/org-access";
 import { orgIdSchema, orgSchema, taskSchema, taskStatusSchema } from "@/lib/schemas";
+import type { MyTaskGroup, TaskRow } from "@/lib/tasks-types";
+import { loadTasks } from "@/lib/tasks.server";
 
-export type TaskRow = {
-  id: string;
-  title: string;
-  description: string | null;
-  status: "open" | "done";
-  dueOn: string | null;
-  projectId: string;
-  projectName: string;
-  categoryId: string;
-  categoryName: string;
-  assigneeIds: string[];
-  loggedMinutes: number;
-};
+export type { MyTaskGroup, TaskRow };
 
-export type MyTaskGroup = {
-  projectId: string;
-  projectName: string;
-  categories: {
-    categoryId: string;
-    categoryName: string;
-    tasks: {
-      id: string;
-      title: string;
-      description: string | null;
-      dueOn: string | null;
-      projectId: string;
-      categoryId: string;
-      assigned: boolean;
-    }[];
-  }[];
-};
-
-type TaskRecord = {
-  id: string;
-  title: string;
-  description: string | null;
-  status: string;
-  due_on: string | null;
-  project_id: string;
-  category_id: string;
-};
-
-async function loadTasks(
-  supabase: Awaited<ReturnType<typeof requireOrgRole>> extends never ? never : any,
-  organizationId: string,
-) {
-  const [tasksResult, assigneesResult, projectsResult, categoriesResult] = await Promise.all([
-    supabase
-      .from("tasks")
-      .select("id, title, description, status, due_on, project_id, category_id")
-      .eq("organization_id", organizationId)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: true }),
-    supabase.from("task_assignees").select("task_id, user_id").eq("organization_id", organizationId),
-    supabase
-      .from("projects")
-      .select("id, name, code")
-      .eq("organization_id", organizationId)
-      .is("deleted_at", null),
-    supabase.from("categories").select("id, name").eq("organization_id", organizationId),
-  ]);
-
-  if (tasksResult.error) throw new Error(tasksResult.error.message);
-  if (assigneesResult.error) throw new Error(assigneesResult.error.message);
-  if (projectsResult.error) throw new Error(projectsResult.error.message);
-  if (categoriesResult.error) throw new Error(categoriesResult.error.message);
-
-  const assigneesByTask = new Map<string, string[]>();
-  for (const row of assigneesResult.data ?? []) {
-    const list = assigneesByTask.get(row.task_id) ?? [];
-    list.push(row.user_id);
-    assigneesByTask.set(row.task_id, list);
-  }
-
-  const projectNames = new Map<string, string>();
-  for (const row of projectsResult.data ?? []) {
-    projectNames.set(row.id, row.code ? `${row.code} — ${row.name}` : row.name);
-  }
-  const categoryNames = new Map<string, string>();
-  for (const row of categoriesResult.data ?? []) categoryNames.set(row.id, row.name);
-
-  return {
-    tasks: (tasksResult.data ?? []) as TaskRecord[],
-    assigneesByTask,
-    projectNames,
-    categoryNames,
-  };
-}
-
-/** All tasks in the organization, grouped for the projects screen. */
+/** All tasks in the organization, for the projects screen. */
 export const getTasks = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => orgSchema.parse(data))
@@ -122,7 +37,7 @@ export const getTasks = createServerFn({ method: "GET" })
       id: task.id,
       title: task.title,
       description: task.description,
-      status: task.status === "done" ? "done" : "open",
+      status: task.status === "done" ? ("done" as const) : ("open" as const),
       dueOn: task.due_on,
       projectId: task.project_id,
       projectName: projectNames.get(task.project_id) ?? "Unknown project",
@@ -133,7 +48,7 @@ export const getTasks = createServerFn({ method: "GET" })
     }));
   });
 
-/** Open tasks assigned to the caller, or with nobody assigned, grouped by project + category. */
+/** Open tasks assigned to the caller (or unassigned), grouped by project + category. */
 export const getMyTasks = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => orgSchema.parse(data))
@@ -162,7 +77,7 @@ export const getMyTasks = createServerFn({ method: "GET" })
         groups.set(task.project_id, group);
       }
 
-      let category = group.categories.find((c) => c.categoryId === task.category_id);
+      let category = group.categories.find((item) => item.categoryId === task.category_id);
       if (!category) {
         category = {
           categoryId: task.category_id,
@@ -244,13 +159,12 @@ export const saveTask = createServerFn({ method: "POST" })
     if (clearError) throw new Error(clearError.message);
 
     if (data.assigneeIds.length > 0) {
-      const { error: insertError } = await context.supabase.from("task_assignees").insert(
-        data.assigneeIds.map((userId) => ({
-          task_id: taskId!,
-          organization_id: data.organizationId,
-          user_id: userId,
-        })),
-      );
+      const rows = data.assigneeIds.map((userId) => ({
+        task_id: taskId as string,
+        organization_id: data.organizationId,
+        user_id: userId,
+      }));
+      const { error: insertError } = await context.supabase.from("task_assignees").insert(rows);
       if (insertError) throw new Error(insertError.message);
     }
 
