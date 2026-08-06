@@ -1,11 +1,13 @@
 /**
  * Supabase environment registry.
  *
- * Client-safe: contains only publishable values. The service-role key for each
- * environment is read server-side from the named environment variable.
+ * Client-safe: contains only publishable values. The service-role key is read
+ * server-side from the named environment variable.
+ *
+ * There is a single environment — development. Every host connects to it.
  */
 
-export type SupabaseEnvironmentName = "development" | "production";
+export type SupabaseEnvironmentName = "development";
 
 export interface SupabaseEnvironment {
   name: SupabaseEnvironmentName;
@@ -26,23 +28,10 @@ export const SUPABASE_ENVIRONMENTS: Record<SupabaseEnvironmentName, SupabaseEnvi
     publishableKey: "sb_publishable_GCesRR4-iPCvx8XblkjYdQ_oTfmFwsv",
     serviceRoleEnvVar: "EXT_SUPABASE_SERVICE_ROLE_KEY",
   },
-  production: {
-    name: "production",
-    label: "Production",
-    url: "https://sezrcfpntuvpjdsnkedz.supabase.co",
-    publishableKey: "sb_publishable__XCfIzP3TyfiTxVbvDKDWA_M9mLm3mW",
-    serviceRoleEnvVar: "PROD_SUPABASE_SERVICE_ROLE_KEY",
-  },
 };
 
-/** Hosts that must always resolve to the production project. */
-export const PRODUCTION_HOSTS = ["mytimesheets.app", "www.mytimesheets.app"];
-
-/** localStorage key used for the development-only environment override. */
-export const ENV_OVERRIDE_STORAGE_KEY = "rbs.supabase-env-override";
-
 export function isEnvironmentName(value: unknown): value is SupabaseEnvironmentName {
-  return value === "development" || value === "production";
+  return value === "development";
 }
 
 export function isEnvironmentConfigured(name: SupabaseEnvironmentName): boolean {
@@ -61,42 +50,9 @@ export function normaliseHost(host: string | null | undefined): string {
   return (host ?? "").toLowerCase().split(":")[0]!.trim();
 }
 
-/**
- * Resolve the target environment.
- *
- * 1. Explicit setting (VITE_SUPABASE_ENV / SUPABASE_ENV) wins.
- * 2. Otherwise the hostname decides: production hosts -> production,
- *    everything else (previews, localhost) -> development.
- * 3. A stored override is honoured ONLY when the base resolution is
- *    development, so production can never be pointed at another project.
- * 4. If the resolved environment isn't configured yet, fall back to development.
- */
-export function resolveEnvironmentName(options: {
-  host?: string | null;
-  explicit?: string | null;
-  override?: string | null;
-}): SupabaseEnvironmentName {
-  const explicit = options.explicit?.trim();
-  const host = normaliseHost(options.host);
-
-  let base: SupabaseEnvironmentName;
-  if (isEnvironmentName(explicit)) {
-    base = explicit;
-  } else if (PRODUCTION_HOSTS.includes(host)) {
-    base = "production";
-  } else {
-    base = "development";
-  }
-
-  let resolved = base;
-  if (base === "development" && isEnvironmentName(options.override)) {
-    resolved = options.override;
-  }
-
-  if (!isEnvironmentConfigured(resolved)) {
-    return "development";
-  }
-  return resolved;
+/** Always the development project, regardless of host or overrides. */
+export function resolveEnvironmentName(): SupabaseEnvironmentName {
+  return "development";
 }
 
 export function getEnvironment(name: SupabaseEnvironmentName): SupabaseEnvironment {

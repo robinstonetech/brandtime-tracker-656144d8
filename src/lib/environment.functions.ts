@@ -7,7 +7,7 @@ export interface EnvironmentHealth {
 }
 
 export interface EnvironmentStatus {
-  name: "development" | "production";
+  name: "development";
   label: string;
   url: string;
   projectRef: string;
