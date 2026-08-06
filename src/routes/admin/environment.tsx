@@ -1,20 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { activeBrowserEnvironment, supabase } from "@/integrations/supabase/client";
-import { setEnvironmentOverride } from "@/integrations/supabase/config";
-import {
-  SUPABASE_ENVIRONMENTS,
-  isEnvironmentConfigured,
-  projectRefFromUrl,
-  type SupabaseEnvironmentName,
-} from "@/integrations/supabase/environments";
+import { activeBrowserEnvironment } from "@/integrations/supabase/client";
+import { projectRefFromUrl } from "@/integrations/supabase/environments";
 import { getEnvironmentStatus, type EnvironmentHealth } from "@/lib/environment.functions";
 
 export const Route = createFileRoute("/admin/environment")({
@@ -24,13 +16,13 @@ export const Route = createFileRoute("/admin/environment")({
       {
         name: "description",
         content:
-          "Check which Supabase project the timesheet app is connected to, verify connection health, and switch between the development and production databases.",
+          "Check which Supabase project the timesheet app is connected to and verify connection health.",
       },
       { property: "og:title", content: "Environment — Robinstone Business Suite Time" },
       {
         property: "og:description",
         content:
-          "Check which Supabase project the timesheet app is connected to and switch between development and production databases.",
+          "Check which Supabase project the timesheet app is connected to and verify connection health.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -41,6 +33,7 @@ export const Route = createFileRoute("/admin/environment")({
     <div className="p-8 text-sm text-destructive">Could not load environment status: {error.message}</div>
   ),
 });
+
 
 function HealthRow({ label, health }: { label: string; health: EnvironmentHealth }) {
   return (
