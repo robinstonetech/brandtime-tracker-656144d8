@@ -1,20 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { activeBrowserEnvironment, supabase } from "@/integrations/supabase/client";
-import { setEnvironmentOverride } from "@/integrations/supabase/config";
-import {
-  SUPABASE_ENVIRONMENTS,
-  isEnvironmentConfigured,
-  projectRefFromUrl,
-  type SupabaseEnvironmentName,
-} from "@/integrations/supabase/environments";
+import { activeBrowserEnvironment } from "@/integrations/supabase/client";
+import { projectRefFromUrl } from "@/integrations/supabase/environments";
 import { getEnvironmentStatus, type EnvironmentHealth } from "@/lib/environment.functions";
 
 export const Route = createFileRoute("/admin/environment")({
@@ -24,13 +16,13 @@ export const Route = createFileRoute("/admin/environment")({
       {
         name: "description",
         content:
-          "Check which Supabase project the timesheet app is connected to, verify connection health, and switch between the development and production databases.",
+          "Check which Supabase project the timesheet app is connected to and verify connection health.",
       },
       { property: "og:title", content: "Environment — Robinstone Business Suite Time" },
       {
         property: "og:description",
         content:
-          "Check which Supabase project the timesheet app is connected to and switch between development and production databases.",
+          "Check which Supabase project the timesheet app is connected to and verify connection health.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -41,6 +33,7 @@ export const Route = createFileRoute("/admin/environment")({
     <div className="p-8 text-sm text-destructive">Could not load environment status: {error.message}</div>
   ),
 });
+
 
 function HealthRow({ label, health }: { label: string; health: EnvironmentHealth }) {
   return (
@@ -62,25 +55,12 @@ function HealthRow({ label, health }: { label: string; health: EnvironmentHealth
 
 function EnvironmentPage() {
   const fetchStatus = useServerFn(getEnvironmentStatus);
-  const [switching, setSwitching] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["environment-status"],
     queryFn: () => fetchStatus(),
     refetchOnWindowFocus: false,
   });
-
-  const isProduction = activeBrowserEnvironment.name === "production";
-  const canSwitch = !isProduction;
-
-  async function switchTo(name: SupabaseEnvironmentName) {
-    if (!canSwitch || !isEnvironmentConfigured(name)) return;
-    setSwitching(true);
-    // Sessions are project-bound: sign out before repointing.
-    await supabase.auth.signOut().catch(() => undefined);
-    setEnvironmentOverride(name === "development" ? null : name);
-    window.location.reload();
-  }
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
@@ -95,9 +75,9 @@ function EnvironmentPage() {
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div>
             <CardTitle>Active connection</CardTitle>
-            <CardDescription>Resolved from the host serving this page.</CardDescription>
+            <CardDescription>Every host connects to this single database.</CardDescription>
           </div>
-          <Badge variant={isProduction ? "default" : "secondary"} className="uppercase">
+          <Badge variant="secondary" className="uppercase">
             {activeBrowserEnvironment.label}
           </Badge>
         </CardHeader>
@@ -138,55 +118,22 @@ function EnvironmentPage() {
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Switch database</CardTitle>
-          <CardDescription>
-            {canSwitch
-              ? "Development builds only. Switching signs you out, because sessions belong to a single Supabase project."
-              : "Disabled in production. The live site is permanently bound to the production project."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
-          {(Object.keys(SUPABASE_ENVIRONMENTS) as SupabaseEnvironmentName[]).map((name) => {
-            const env = SUPABASE_ENVIRONMENTS[name];
-            const configured = isEnvironmentConfigured(name);
-            const active = activeBrowserEnvironment.name === name;
-            return (
-              <Button
-                key={name}
-                variant={active ? "default" : "outline"}
-                disabled={!canSwitch || !configured || active || switching}
-                onClick={() => switchTo(name)}
-              >
-                {env.label}
-                {!configured ? " (not configured)" : active ? " (active)" : ""}
-              </Button>
-            );
-          })}
-        </CardContent>
-      </Card>
-
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Promotion workflow</CardTitle>
-          <CardDescription>Keep both projects identical by only ever moving forward.</CardDescription>
+          <CardTitle>Migration workflow</CardTitle>
+          <CardDescription>Forward-only changes against the development project.</CardDescription>
         </CardHeader>
         <CardContent>
           <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
-            <li>Build and test in the Lovable preview — always the development project.</li>
+            <li>Build and test in the Lovable preview.</li>
             <li>
-              Add migrations to <code>supabase/migrations/</code>, apply to dev with{" "}
+              Add migrations to <code>supabase/migrations/</code>, apply them with{" "}
               <code>supabase db push</code>, then regenerate types.
             </li>
-            <li>
-              Promote by linking the production ref and pushing the same files — never hand-run SQL
-              in the production editor.
-            </li>
-            <li>Publish the app; myTimesheets.app resolves to production automatically.</li>
-            <li>Verify here: the badge must read Production and all checks green.</li>
+            <li>Verify here: all checks green.</li>
             <li>Roll back with a new forward migration; never edit an applied file.</li>
           </ol>
         </CardContent>
       </Card>
     </main>
+
   );
 }
