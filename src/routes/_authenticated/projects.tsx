@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Archive, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { Archive, ChevronDown, ChevronRight, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+
 
 import {
   AlertDialog,
@@ -46,7 +47,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { formatMinutes } from "@/lib/time-utils";
@@ -68,10 +68,6 @@ import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { deleteTask, getTasks, setTaskStatus } from "@/lib/tasks.functions";
 import type { TaskRow } from "@/lib/tasks-types";
 
-
-
-
-
 export const Route = createFileRoute("/_authenticated/projects")({
   head: () => ({
     meta: [
@@ -87,6 +83,7 @@ export const Route = createFileRoute("/_authenticated/projects")({
 });
 
 const NONE = "__none__";
+const NEW_CLIENT = "__new_client__";
 
 function ProjectsPage() {
   const { activeMembership } = useWorkspace();
@@ -96,11 +93,12 @@ function ProjectsPage() {
   const fetchPage = useServerFn(getProjectsPage);
   const [projectDialog, setProjectDialog] = useState<ProjectRow | "new" | null>(null);
   const [clientDialog, setClientDialog] = useState<ClientRow | "new" | null>(null);
-  const [categoryDialog, setCategoryDialog] = useState<CategoryRow | "new" | null>(null);
+  const [manageClientsOpen, setManageClientsOpen] = useState(false);
+  const [categoryDialog, setCategoryDialog] = useState<{ row: CategoryRow | "new"; projectId: string } | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<CategoryRow | null>(null);
-  const [taskDialog, setTaskDialog] = useState<TaskRow | "new" | null>(null);
+  const [taskDialog, setTaskDialog] = useState<{ row: TaskRow | "new"; projectId: string } | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<TaskRow | null>(null);
-
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const pageQuery = useQuery({
     queryKey: ["projects-page", organizationId],
@@ -196,392 +194,113 @@ function ProjectsPage() {
   const people = pageQuery.data?.people ?? [];
   const tasks = tasksQuery.data ?? [];
 
+  const toggleExpand = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const projectName = (id: string) =>
+    projects.find((p) => p.id === id)?.name ?? "Unknown project";
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
-        <p className="text-sm text-muted-foreground">
-          Projects, clients and categories drive what your team can log time against.
-        </p>
+      <div className="flex flex-row items-center justify-between space-y-0">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
+          <p className="text-sm text-muted-foreground">
+            Projects contain their categories and tasks. Expand a project to manage them.
+          </p>
+        </div>
+        {canManage ? (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setManageClientsOpen(true)}>
+              Manage clients
+            </Button>
+            <Button onClick={() => setProjectDialog("new")}>
+              <Plus className="mr-2 size-4" /> New project
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       {pageQuery.isLoading ? (
         <Skeleton className="h-72" />
       ) : (
-        <Tabs defaultValue="projects">
-          <TabsList>
-            <TabsTrigger value="projects">Projects</TabsTrigger>
-            <TabsTrigger value="clients">Clients</TabsTrigger>
-            <TabsTrigger value="categories">Categories</TabsTrigger>
-            <TabsTrigger value="tasks">Tasks</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="projects" className="mt-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <div>
-                  <CardTitle>All projects</CardTitle>
-                  <CardDescription>{projects.length} project(s)</CardDescription>
-                </div>
-                {canManage ? (
-                  <Button onClick={() => setProjectDialog("new")}>
-                    <Plus className="mr-2 size-4" /> New project
-                  </Button>
-                ) : null}
-              </CardHeader>
-              <CardContent>
-                {projects.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No projects yet.</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Project</TableHead>
-                        <TableHead>Client</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Members</TableHead>
-                        {canManage ? <TableHead className="text-right">Actions</TableHead> : null}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {projects.map((project) => (
-                        <TableRow key={project.id}>
-                          <TableCell>
-                            <div className="font-medium">
-                              {project.code ? `${project.code} — ` : ""}
-                              {project.name}
-                            </div>
-                            {project.description ? (
-                              <div className="max-w-sm truncate text-sm text-muted-foreground">
-                                {project.description}
-                              </div>
-                            ) : null}
-                          </TableCell>
-                          <TableCell>{project.clientName ?? "—"}</TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">
-                              {project.status.replace("_", " ")}
-                            </Badge>
-                            {!project.isBillable ? (
-                              <Badge variant="outline" className="ml-2">
-                                Non-billable
-                              </Badge>
-                            ) : null}
-                          </TableCell>
-                          <TableCell>
-                            {project.memberIds.length === 0 ? "Everyone" : project.memberIds.length}
-                          </TableCell>
-                          {canManage ? (
-                            <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label="Edit project"
-                                onClick={() => setProjectDialog(project)}
-                              >
-                                <Pencil className="size-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label={
-                                  project.status === "archived" ? "Restore project" : "Archive project"
-                                }
-                                onClick={() =>
-                                  archiveMutation.mutate({
-                                    id: project.id,
-                                    archived: project.status !== "archived",
-                                  })
-                                }
-                              >
-                                {project.status === "archived" ? (
-                                  <RotateCcw className="size-4" />
-                                ) : (
-                                  <Archive className="size-4" />
-                                )}
-                              </Button>
-                            </TableCell>
-                          ) : null}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="clients" className="mt-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <div>
-                  <CardTitle>Clients</CardTitle>
-                  <CardDescription>Group projects by the organization they bill to.</CardDescription>
-                </div>
-                {canManage ? (
-                  <Button onClick={() => setClientDialog("new")}>
-                    <Plus className="mr-2 size-4" /> New client
-                  </Button>
-                ) : null}
-              </CardHeader>
-              <CardContent>
-                {clients.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No clients yet.</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Contact</TableHead>
-                        <TableHead>Projects</TableHead>
-                        <TableHead>Status</TableHead>
-                        {canManage ? <TableHead className="text-right">Actions</TableHead> : null}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {clients.map((client) => (
-                        <TableRow key={client.id}>
-                          <TableCell className="font-medium">{client.name}</TableCell>
-                          <TableCell>{client.contactEmail ?? "—"}</TableCell>
-                          <TableCell>
-                            {client.projects.length === 0 ? (
-                              "—"
-                            ) : (
-                              <div className="flex flex-wrap gap-1">
-                                {client.projects.map((project) => (
-                                  <Badge key={project.id} variant="outline">
-                                    {project.name}
-                                  </Badge>
-                                ))}
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={client.isActive ? "default" : "secondary"}>
-                              {client.isActive ? "Active" : "Inactive"}
-                            </Badge>
-                          </TableCell>
-                          {canManage ? (
-                            <TableCell className="space-x-2 text-right">
-                              <Button variant="ghost" size="sm" onClick={() => setClientDialog(client)}>
-                                Edit
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  clientActiveMutation.mutate({
-                                    id: client.id,
-                                    isActive: !client.isActive,
-                                  })
-                                }
-                              >
-                                {client.isActive ? "Deactivate" : "Activate"}
-                              </Button>
-                            </TableCell>
-                          ) : null}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="categories" className="mt-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <div>
-                  <CardTitle>Time categories</CardTitle>
-                  <CardDescription>Classify time entries, e.g. Development or Meetings.</CardDescription>
-                </div>
-                {canManage ? (
-                  <Button onClick={() => setCategoryDialog("new")}>
-                    <Plus className="mr-2 size-4" /> New category
-                  </Button>
-                ) : null}
-              </CardHeader>
-              <CardContent>
-                {categories.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No categories yet.</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Project</TableHead>
-                        <TableHead>Billable</TableHead>
-                        <TableHead>Status</TableHead>
-                        {canManage ? <TableHead className="text-right">Actions</TableHead> : null}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {categories.map((category) => (
-                        <TableRow key={category.id}>
-                          <TableCell className="font-medium">{category.name}</TableCell>
-                          <TableCell>
-                            {category.projectName ?? (
-                              <span className="text-muted-foreground">Unassigned</span>
-                            )}
-                          </TableCell>
-                          <TableCell>{category.isBillable ? "Yes" : "No"}</TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">
-                              {category.isActive ? "Active" : "Inactive"}
-                            </Badge>
-
-                          </TableCell>
-                          {canManage ? (
-                            <TableCell>
-                              <div className="flex items-start justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setCategoryDialog(category)}
-                              >
-                                Edit
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  categoryActiveMutation.mutate({
-                                    id: category.id,
-                                    isActive: !category.isActive,
-                                  })
-                                }
-                              >
-                                {category.isActive ? "Deactivate" : "Activate"}
-                              </Button>
-                              <Button
-                                size="sm"
-                                className="bg-soft-red text-soft-red-foreground hover:bg-soft-red/90"
-                                onClick={() => setCategoryToDelete(category)}
-                              >
-                                <Trash2 className="mr-2 size-4" /> Delete
-                              </Button>
-                              </div>
-                            </TableCell>
-                          ) : null}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="tasks" className="mt-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <div>
-                  <CardTitle>Tasks</CardTitle>
-                  <CardDescription>
-                    Work items per project and category, optionally assigned to team members.
-                  </CardDescription>
-                </div>
-                {canManage ? (
-                  <Button onClick={() => setTaskDialog("new")}>
-                    <Plus className="mr-2 size-4" /> New task
-                  </Button>
-                ) : null}
-              </CardHeader>
-              <CardContent>
-                {tasksQuery.isLoading ? (
-                  <Skeleton className="h-40" />
-                ) : tasks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No tasks yet.</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Task</TableHead>
-                        <TableHead>Project</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Assigned</TableHead>
-                        <TableHead>Logged</TableHead>
-                        <TableHead>Status</TableHead>
-                        {canManage ? <TableHead className="text-right">Actions</TableHead> : null}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {tasks.map((task) => (
-                        <TableRow key={task.id}>
-                          <TableCell>
-                            <div className="font-medium">{task.title}</div>
-                            {task.dueOn ? (
-                              <div className="text-xs text-muted-foreground">Due {task.dueOn}</div>
-                            ) : null}
-                          </TableCell>
-                          <TableCell>{task.projectName}</TableCell>
-                          <TableCell>{task.categoryName}</TableCell>
-                          <TableCell>
-                            {task.assigneeIds.length === 0 ? (
-                              <span className="text-muted-foreground">Unassigned</span>
-                            ) : (
-                              <div className="flex flex-wrap gap-1">
-                                {task.assigneeIds.map((userId) => {
-                                  const person = people.find((item) => item.userId === userId);
-                                  return (
-                                    <Badge key={userId} variant="outline">
-                                      {person?.name || person?.email || "Member"}
-                                    </Badge>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell className="font-mono tabular-nums">
-                            {formatMinutes(task.loggedMinutes)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">
-                              {task.status === "done" ? "Done" : "Open"}
-                            </Badge>
-                          </TableCell>
-                          {canManage ? (
-                            <TableCell>
-                              <div className="flex items-start justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setTaskDialog(task)}
-                                >
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    taskStatusMutation.mutate({
-                                      id: task.id,
-                                      status: task.status === "done" ? "open" : "done",
-                                    })
-                                  }
-                                >
-                                  {task.status === "done" ? "Reopen" : "Mark done"}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  className="bg-soft-red text-soft-red-foreground hover:bg-soft-red/90"
-                                  onClick={() => setTaskToDelete(task)}
-                                >
-                                  <Trash2 className="mr-2 size-4" /> Delete
-                                </Button>
-                              </div>
-                            </TableCell>
-                          ) : null}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        <Card>
+          <CardHeader>
+            <CardTitle>All projects</CardTitle>
+            <CardDescription>{projects.length} project(s)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {projects.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No projects yet.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10" />
+                    <TableHead>Project</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Members</TableHead>
+                    {canManage ? <TableHead className="text-right">Actions</TableHead> : null}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {projects.map((project) => {
+                    const isOpen = expanded.has(project.id);
+                    const projectCategories = categories.filter(
+                      (c) => c.projectId === project.id,
+                    );
+                    const projectTasks = tasks.filter((t) => t.projectId === project.id);
+                    return (
+                      <ProjectRowGroup
+                        key={project.id}
+                        project={project}
+                        isOpen={isOpen}
+                        onToggle={() => toggleExpand(project.id)}
+                        canManage={canManage}
+                        categories={projectCategories}
+                        tasks={projectTasks}
+                        people={people}
+                        onEditProject={() => setProjectDialog(project)}
+                        onArchive={() =>
+                          archiveMutation.mutate({
+                            id: project.id,
+                            archived: project.status !== "archived",
+                          })
+                        }
+                        onEditCategory={(row) =>
+                          setCategoryDialog({ row, projectId: project.id })
+                        }
+                        onToggleCategory={(row) =>
+                          categoryActiveMutation.mutate({
+                            id: row.id,
+                            isActive: !row.isActive,
+                          })
+                        }
+                        onDeleteCategory={(row) => setCategoryToDelete(row)}
+                        onEditTask={(row) =>
+                          setTaskDialog({ row, projectId: project.id })
+                        }
+                        onToggleTaskStatus={(row) =>
+                          taskStatusMutation.mutate({
+                            id: row.id,
+                            status: row.status === "done" ? "open" : "done",
+                          })
+                        }
+                        onDeleteTask={(row) => setTaskToDelete(row)}
+                      />
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       <AlertDialog
@@ -642,39 +361,317 @@ function ProjectsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <TaskDialog
-        organizationId={organizationId}
-        value={taskDialog}
-        projects={projects}
-        categories={categories}
-        people={people}
-        onClose={() => setTaskDialog(null)}
-        onSaved={() => void invalidateTasks()}
-      />
+      {taskDialog ? (
+        <TaskDialog
+          organizationId={organizationId}
+          value={taskDialog.row}
+          projects={projects}
+          categories={categories}
+          people={people}
+          lockedProjectId={taskDialog.projectId}
+          onClose={() => setTaskDialog(null)}
+          onSaved={() => void invalidateTasks()}
+        />
+      ) : null}
 
       <ProjectDialog
-
         organizationId={organizationId}
         value={projectDialog}
         clients={clients}
         people={people}
         onClose={() => setProjectDialog(null)}
         onSaved={() => void invalidate()}
+        onRequestNewClient={() => setClientDialog("new")}
       />
+
       <ClientDialog
         organizationId={organizationId}
         value={clientDialog}
+        clients={clients}
         onClose={() => setClientDialog(null)}
         onSaved={() => void invalidate()}
       />
-      <CategoryDialog
-        organizationId={organizationId}
-        value={categoryDialog}
-        projects={projects}
-        onClose={() => setCategoryDialog(null)}
-        onSaved={() => void invalidate()}
+
+      {categoryDialog ? (
+        <CategoryDialog
+          organizationId={organizationId}
+          value={categoryDialog.row}
+          lockedProjectId={categoryDialog.projectId}
+          lockedProjectName={projectName(categoryDialog.projectId)}
+          onClose={() => setCategoryDialog(null)}
+          onSaved={() => void invalidate()}
+        />
+      ) : null}
+
+      <ManageClientsDialog
+        open={manageClientsOpen}
+        onOpenChange={setManageClientsOpen}
+        clients={clients}
+        canManage={canManage}
+        onEdit={(client) => setClientDialog(client)}
+        onToggleActive={(client) =>
+          clientActiveMutation.mutate({ id: client.id, isActive: !client.isActive })
+        }
       />
     </div>
+  );
+}
+
+function ProjectRowGroup({
+  project,
+  isOpen,
+  onToggle,
+  canManage,
+  categories,
+  tasks,
+  people,
+  onEditProject,
+  onArchive,
+  onEditCategory,
+  onToggleCategory,
+  onDeleteCategory,
+  onEditTask,
+  onToggleTaskStatus,
+  onDeleteTask,
+}: {
+  project: ProjectRow;
+  isOpen: boolean;
+  onToggle: () => void;
+  canManage: boolean;
+  categories: CategoryRow[];
+  tasks: TaskRow[];
+  people: OrgPerson[];
+  onEditProject: () => void;
+  onArchive: () => void;
+  onEditCategory: (row: CategoryRow | "new") => void;
+  onToggleCategory: (row: CategoryRow) => void;
+  onDeleteCategory: (row: CategoryRow) => void;
+  onEditTask: (row: TaskRow | "new") => void;
+  onToggleTaskStatus: (row: TaskRow) => void;
+  onDeleteTask: (row: TaskRow) => void;
+}) {
+  const colSpan = canManage ? 6 : 5;
+  return (
+    <>
+      <TableRow className={project.status === "archived" ? "opacity-60" : undefined}>
+        <TableCell>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            aria-label={isOpen ? "Collapse project" : "Expand project"}
+            onClick={onToggle}
+          >
+            {isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+          </Button>
+        </TableCell>
+        <TableCell>
+          <button
+            type="button"
+            className="text-left font-medium"
+            onClick={onToggle}
+          >
+            {project.code ? `${project.code} — ` : ""}
+            {project.name}
+          </button>
+          {project.description ? (
+            <div className="max-w-sm truncate text-sm text-muted-foreground">
+              {project.description}
+            </div>
+          ) : null}
+        </TableCell>
+        <TableCell>{project.clientName ?? "—"}</TableCell>
+        <TableCell>
+          <Badge variant="secondary">{project.status.replace("_", " ")}</Badge>
+          {!project.isBillable ? (
+            <Badge variant="outline" className="ml-2">Non-billable</Badge>
+          ) : null}
+        </TableCell>
+        <TableCell>
+          {project.memberIds.length === 0 ? "Everyone" : project.memberIds.length}
+        </TableCell>
+        {canManage ? (
+          <TableCell className="text-right">
+            <Button variant="ghost" size="icon" aria-label="Edit project" onClick={onEditProject}>
+              <Pencil className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={project.status === "archived" ? "Restore project" : "Archive project"}
+              onClick={onArchive}
+            >
+              {project.status === "archived" ? (
+                <RotateCcw className="size-4" />
+              ) : (
+                <Archive className="size-4" />
+              )}
+            </Button>
+          </TableCell>
+        ) : null}
+      </TableRow>
+      {isOpen ? (
+        <TableRow className="bg-muted/30 hover:bg-muted/30">
+          <TableCell colSpan={colSpan} className="p-0">
+            <div className="grid gap-4 p-4 pl-12">
+              {/* Categories sub-section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold">Categories</h3>
+                  {canManage ? (
+                    <Button size="sm" variant="outline" onClick={() => onEditCategory("new")}>
+                      <Plus className="mr-2 size-4" /> New category
+                    </Button>
+                  ) : null}
+                </div>
+                {categories.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No categories for this project. Add one to start logging time.
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Billable</TableHead>
+                        <TableHead>Status</TableHead>
+                        {canManage ? <TableHead className="text-right">Actions</TableHead> : null}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {categories.map((category) => (
+                        <TableRow key={category.id}>
+                          <TableCell className="font-medium">{category.name}</TableCell>
+                          <TableCell>{category.isBillable ? "Yes" : "No"}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {category.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                          </TableCell>
+                          {canManage ? (
+                            <TableCell>
+                              <div className="flex items-start justify-end gap-2">
+                                <Button variant="ghost" size="sm" onClick={() => onEditCategory(category)}>
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => onToggleCategory(category)}
+                                >
+                                  {category.isActive ? "Deactivate" : "Activate"}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="bg-soft-red text-soft-red-foreground hover:bg-soft-red/90"
+                                  onClick={() => onDeleteCategory(category)}
+                                >
+                                  <Trash2 className="mr-2 size-4" /> Delete
+                                </Button>
+                              </div>
+                            </TableCell>
+                          ) : null}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+
+              {/* Tasks sub-section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold">Tasks</h3>
+                  {canManage ? (
+                    <Button size="sm" variant="outline" onClick={() => onEditTask("new")}>
+                      <Plus className="mr-2 size-4" /> New task
+                    </Button>
+                  ) : null}
+                </div>
+                {tasks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No tasks for this project. Add one to assign work to team members.
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Task</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Assigned</TableHead>
+                        <TableHead>Logged</TableHead>
+                        <TableHead>Status</TableHead>
+                        {canManage ? <TableHead className="text-right">Actions</TableHead> : null}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {tasks.map((task) => (
+                        <TableRow key={task.id}>
+                          <TableCell>
+                            <div className="font-medium">{task.title}</div>
+                            {task.dueOn ? (
+                              <div className="text-xs text-muted-foreground">Due {task.dueOn}</div>
+                            ) : null}
+                          </TableCell>
+                          <TableCell>{task.categoryName}</TableCell>
+                          <TableCell>
+                            {task.assigneeIds.length === 0 ? (
+                              <span className="text-muted-foreground">Unassigned</span>
+                            ) : (
+                              <div className="flex flex-wrap gap-1">
+                                {task.assigneeIds.map((userId) => {
+                                  const person = people.find((item) => item.userId === userId);
+                                  return (
+                                    <Badge key={userId} variant="outline">
+                                      {person?.name || person?.email || "Member"}
+                                    </Badge>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-mono tabular-nums">
+                            {formatMinutes(task.loggedMinutes)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {task.status === "done" ? "Done" : "Open"}
+                            </Badge>
+                          </TableCell>
+                          {canManage ? (
+                            <TableCell>
+                              <div className="flex items-start justify-end gap-2">
+                                <Button variant="ghost" size="sm" onClick={() => onEditTask(task)}>
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => onToggleTaskStatus(task)}
+                                >
+                                  {task.status === "done" ? "Reopen" : "Mark done"}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="bg-soft-red text-soft-red-foreground hover:bg-soft-red/90"
+                                  onClick={() => onDeleteTask(task)}
+                                >
+                                  <Trash2 className="mr-2 size-4" /> Delete
+                                </Button>
+                              </div>
+                            </TableCell>
+                          ) : null}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            </div>
+          </TableCell>
+        </TableRow>
+      ) : null}
+    </>
   );
 }
 
@@ -685,6 +682,7 @@ function ProjectDialog({
   people,
   onClose,
   onSaved,
+  onRequestNewClient,
 }: {
   organizationId: string;
   value: ProjectRow | "new" | null;
@@ -692,6 +690,7 @@ function ProjectDialog({
   people: OrgPerson[];
   onClose: () => void;
   onSaved: () => void;
+  onRequestNewClient: () => void;
 }) {
   const project = value === "new" || value === null ? null : value;
   const save = useServerFn(saveProject);
@@ -776,7 +775,16 @@ function ProjectDialog({
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Client</Label>
-              <Select value={clientId} onValueChange={setClientId}>
+              <Select
+                value={clientId}
+                onValueChange={(v) => {
+                  if (v === NEW_CLIENT) {
+                    onRequestNewClient();
+                    return;
+                  }
+                  setClientId(v);
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="None" />
                 </SelectTrigger>
@@ -787,6 +795,7 @@ function ProjectDialog({
                       {client.name}
                     </SelectItem>
                   ))}
+                  <SelectItem value={NEW_CLIENT}>+ New client…</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -862,38 +871,53 @@ function ProjectDialog({
   );
 }
 
+
+
+
 function ClientDialog({
   organizationId,
   value,
+  clients,
   onClose,
   onSaved,
 }: {
   organizationId: string;
   value: ClientRow | "new" | null;
+  clients: ClientRow[];
   onClose: () => void;
   onSaved: () => void;
 }) {
   const client = value === "new" || value === null ? null : value;
   const save = useServerFn(saveClient);
+  const toggleClient = useServerFn(setClientActive);
   const [name, setName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
+  const [isActive, setIsActive] = useState(true);
 
   useEffect(() => {
     if (!value) return;
     setName(client?.name ?? "");
     setContactEmail(client?.contactEmail ?? "");
+    setIsActive(client?.isActive ?? true);
   }, [value, client]);
 
   const mutation = useMutation({
-    mutationFn: () =>
-      save({
+    mutationFn: async () => {
+      const { clientId } = await save({
         data: {
           organizationId,
           id: client?.id ?? null,
           name: name.trim(),
           contactEmail: contactEmail.trim(),
         },
-      }),
+      });
+      if (client) {
+        await toggleClient({
+          data: { organizationId, id: client.id, isActive },
+        });
+      }
+      return clientId;
+    },
     onSuccess: () => {
       onSaved();
       toast.success(client ? "Client updated" : "Client created");
@@ -923,6 +947,18 @@ function ClientDialog({
               onChange={(e) => setContactEmail(e.target.value)}
             />
           </div>
+          {client ? (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="client-active"
+                checked={isActive}
+                onCheckedChange={(v) => setIsActive(v === true)}
+              />
+              <Label htmlFor="client-active" className="font-normal">
+                Active
+              </Label>
+            </div>
+          ) : null}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>
@@ -937,45 +973,109 @@ function ClientDialog({
   );
 }
 
+function ManageClientsDialog({
+  open,
+  onOpenChange,
+  clients,
+  canManage,
+  onEdit,
+  onToggleActive,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  clients: ClientRow[];
+  canManage: boolean;
+  onEdit: (client: ClientRow) => void;
+  onToggleActive: (client: ClientRow) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Clients</DialogTitle>
+          <DialogDescription>
+            Group projects by the organization they bill to. Click a client to edit it.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-2">
+          {clients.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No clients yet.</p>
+          ) : (
+            clients.map((client) => (
+              <div
+                key={client.id}
+                className="flex items-center justify-between rounded-md border p-3"
+              >
+                <div>
+                  <div className="font-medium">{client.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {client.contactEmail ?? "No contact"} · {client.projectCount} project(s)
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={client.isActive ? "default" : "secondary"}>
+                    {client.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                  {canManage ? (
+                    <>
+                      <Button variant="ghost" size="sm" onClick={() => onEdit(client)}>
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onToggleActive(client)}
+                      >
+                        {client.isActive ? "Deactivate" : "Activate"}
+                      </Button>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function CategoryDialog({
   organizationId,
   value,
-  projects,
+  lockedProjectId,
+  lockedProjectName,
   onClose,
   onSaved,
 }: {
   organizationId: string;
-  value: CategoryRow | "new" | null;
-  projects: ProjectRow[];
+  value: CategoryRow | "new";
+  lockedProjectId: string;
+  lockedProjectName: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const category = value === "new" || value === null ? null : value;
+  const category = value === "new" ? null : value;
   const save = useServerFn(saveCategory);
   const [name, setName] = useState("");
   const [isBillable, setIsBillable] = useState(true);
-  const [projectId, setProjectId] = useState("");
 
   useEffect(() => {
-    if (!value) return;
     setName(category?.name ?? "");
     setIsBillable(category?.isBillable ?? true);
-    setProjectId(category?.projectId ?? "");
   }, [value, category]);
 
   const mutation = useMutation({
-    mutationFn: () => {
-      if (!projectId) throw new Error("Select a project for this category");
-      return save({
+    mutationFn: () =>
+      save({
         data: {
           organizationId,
           id: category?.id ?? null,
           name: name.trim(),
           isBillable,
-          projectId,
+          projectId: lockedProjectId,
         },
-      });
-    },
+      }),
     onSuccess: () => {
       onSaved();
       toast.success(category ? "Category updated" : "Category created");
@@ -998,18 +1098,9 @@ function CategoryDialog({
           </div>
           <div className="space-y-2">
             <Label>Project</Label>
-            <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a project" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="rounded-md border px-3 py-2 text-sm font-medium">
+              {lockedProjectName}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Checkbox
