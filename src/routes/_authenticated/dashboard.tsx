@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { CalendarClock, Clock, FolderKanban, Play, Users } from "lucide-react";
+import { CalendarClock, Clock, FolderKanban, Play, Square, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { getDashboard } from "@/lib/dashboard.functions";
 import { getMyTasks } from "@/lib/tasks.functions";
-import { startTimer } from "@/lib/time.functions";
+import { getRunningTimer, startTimer, stopTimer } from "@/lib/time.functions";
 import { currentWeekStartISO, formatDayLabel, formatMinutes, formatWeekRange } from "@/lib/time-utils";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -45,6 +45,8 @@ function DashboardPage() {
   const fetchDashboard = useServerFn(getDashboard);
   const fetchMyTasks = useServerFn(getMyTasks);
   const beginTimer = useServerFn(startTimer);
+  const fetchTimer = useServerFn(getRunningTimer);
+  const haltTimer = useServerFn(stopTimer);
   const dashboardQuery = useQuery({
     queryKey: ["dashboard", organizationId, weekStart],
     queryFn: () => fetchDashboard({ data: { organizationId: organizationId!, weekStart } }),
@@ -57,6 +59,18 @@ function DashboardPage() {
     enabled: Boolean(organizationId),
   });
 
+  const timerQuery = useQuery({
+    queryKey: ["timer", organizationId],
+    queryFn: () => fetchTimer({ data: { organizationId: organizationId! } }),
+    enabled: Boolean(organizationId),
+  });
+
+  const invalidateTimer = () => {
+    void queryClient.invalidateQueries({ queryKey: ["timer", organizationId] });
+    void queryClient.invalidateQueries({ queryKey: ["dashboard", organizationId] });
+    void queryClient.invalidateQueries({ queryKey: ["week", organizationId] });
+  };
+
   const startTaskTimer = useMutation({
     mutationFn: (input: {
       projectId: string;
@@ -65,11 +79,22 @@ function DashboardPage() {
       description: string;
     }) => beginTimer({ data: { organizationId: organizationId!, ...input } }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["timer", organizationId] });
+      invalidateTimer();
       toast.success("Timer started");
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const stopTaskTimer = useMutation({
+    mutationFn: () => haltTimer({ data: { organizationId: organizationId! } }),
+    onSuccess: (result) => {
+      invalidateTimer();
+      toast.success(`Logged ${result.minutes} minute${result.minutes === 1 ? "" : "s"}`);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const runningTaskId = timerQuery.data?.taskId ?? null;
 
   if (isLoading) {
     return (
@@ -146,24 +171,6 @@ function DashboardPage() {
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {cards.map((card) => (
-          <Card key={card.label}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {card.label}
-              </CardTitle>
-              <card.icon className="size-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold">{card.value}</p>
-              <p className="text-xs text-muted-foreground">{card.hint}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-
       <Card>
         <CardHeader>
           <CardTitle>My tasks</CardTitle>
@@ -186,38 +193,53 @@ function DashboardPage() {
                       {category.categoryName}
                     </p>
                     <ul className="divide-y rounded-md border">
-                      {category.tasks.map((task) => (
-                        <li key={task.id} className="flex items-center gap-3 px-3 py-2">
-                          <Button
-                            size="icon"
-                            variant="secondary"
-                            aria-label={`Start timer for ${task.title}`}
-                            disabled={startTaskTimer.isPending}
-                            onClick={() =>
-                              startTaskTimer.mutate({
-                                projectId: task.projectId,
-                                categoryId: task.categoryId,
-                                taskId: task.id,
-                                description: task.title,
-                              })
-                            }
-                          >
-                            <Play className="size-4" />
-                          </Button>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">{task.title}</p>
-                            {task.description ? (
-                              <p className="truncate text-xs text-muted-foreground">
-                                {task.description}
-                              </p>
+                      {category.tasks.map((task) => {
+                        const isActive = runningTaskId === task.id;
+                        return (
+                          <li key={task.id} className="flex items-center gap-3 px-3 py-2">
+                            {isActive ? (
+                              <Button
+                                size="icon"
+                                variant="destructive"
+                                aria-label={`Stop timer for ${task.title}`}
+                                disabled={stopTaskTimer.isPending}
+                                onClick={() => stopTaskTimer.mutate()}
+                              >
+                                <Square className="size-4" />
+                              </Button>
+                            ) : (
+                              <Button
+                                size="icon"
+                                variant="secondary"
+                                aria-label={`Start timer for ${task.title}`}
+                                disabled={startTaskTimer.isPending || Boolean(timerQuery.data)}
+                                onClick={() =>
+                                  startTaskTimer.mutate({
+                                    projectId: task.projectId,
+                                    categoryId: task.categoryId,
+                                    taskId: task.id,
+                                    description: task.title,
+                                  })
+                                }
+                              >
+                                <Play className="size-4" />
+                              </Button>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium">{task.title}</p>
+                              {task.description ? (
+                                <p className="truncate text-xs text-muted-foreground">
+                                  {task.description}
+                                </p>
+                              ) : null}
+                            </div>
+                            {task.dueOn ? (
+                              <Badge variant="outline">Due {task.dueOn}</Badge>
                             ) : null}
-                          </div>
-                          {task.dueOn ? (
-                            <Badge variant="outline">Due {task.dueOn}</Badge>
-                          ) : null}
-                          {!task.assigned ? <Badge variant="secondary">Unassigned</Badge> : null}
-                        </li>
-                      ))}
+                            {!task.assigned ? <Badge variant="secondary">Unassigned</Badge> : null}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 ))}
@@ -226,6 +248,24 @@ function DashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {cards.map((card) => (
+          <Card key={card.label}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {card.label}
+              </CardTitle>
+              <card.icon className="size-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-semibold">{card.value}</p>
+              <p className="text-xs text-muted-foreground">{card.hint}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
