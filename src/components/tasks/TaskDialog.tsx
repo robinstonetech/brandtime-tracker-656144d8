@@ -33,6 +33,7 @@ export function TaskDialog({
   projects,
   categories,
   people,
+  lockedProjectId,
   onClose,
   onSaved,
 }: {
@@ -41,6 +42,7 @@ export function TaskDialog({
   projects: ProjectRow[];
   categories: CategoryRow[];
   people: OrgPerson[];
+  lockedProjectId?: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -59,12 +61,12 @@ export function TaskDialog({
     if (!value) return;
     setTitle(task?.title ?? "");
     setDescription(task?.description ?? "");
-    setProjectId(task?.projectId ?? "");
+    setProjectId(task?.projectId ?? lockedProjectId ?? "");
     setCategoryId(task?.categoryId ?? "");
     setDueOn(task?.dueOn ?? "");
     setStatus(task?.status ?? "open");
     setAssigneeIds(task?.assigneeIds ?? []);
-  }, [value, task]);
+  }, [value, task, lockedProjectId]);
 
   const projectCategories = categories.filter(
     (category) => category.projectId === projectId && category.isActive,
@@ -114,25 +116,36 @@ export function TaskDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Project</Label>
-              <Select
-                value={projectId}
-                onValueChange={(next) => {
-                  setProjectId(next);
-                  setCategoryId("");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a project" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.code ? `${project.code} — ` : ""}
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {lockedProjectId ? (
+                <div className="rounded-md border px-3 py-2 text-sm font-medium">
+                  {(() => {
+                    const locked = projects.find((p) => p.id === lockedProjectId);
+                    return locked
+                      ? `${locked.code ? `${locked.code} — ` : ""}${locked.name}`
+                      : "Project";
+                  })()}
+                </div>
+              ) : (
+                <Select
+                  value={projectId}
+                  onValueChange={(next) => {
+                    setProjectId(next);
+                    setCategoryId("");
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.code ? `${project.code} — ` : ""}
+                        {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="space-y-2">
