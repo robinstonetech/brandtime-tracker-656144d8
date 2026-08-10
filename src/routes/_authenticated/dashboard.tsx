@@ -171,24 +171,6 @@ function DashboardPage() {
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {cards.map((card) => (
-          <Card key={card.label}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {card.label}
-              </CardTitle>
-              <card.icon className="size-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold">{card.value}</p>
-              <p className="text-xs text-muted-foreground">{card.hint}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-
       <Card>
         <CardHeader>
           <CardTitle>My tasks</CardTitle>
@@ -211,38 +193,53 @@ function DashboardPage() {
                       {category.categoryName}
                     </p>
                     <ul className="divide-y rounded-md border">
-                      {category.tasks.map((task) => (
-                        <li key={task.id} className="flex items-center gap-3 px-3 py-2">
-                          <Button
-                            size="icon"
-                            variant="secondary"
-                            aria-label={`Start timer for ${task.title}`}
-                            disabled={startTaskTimer.isPending}
-                            onClick={() =>
-                              startTaskTimer.mutate({
-                                projectId: task.projectId,
-                                categoryId: task.categoryId,
-                                taskId: task.id,
-                                description: task.title,
-                              })
-                            }
-                          >
-                            <Play className="size-4" />
-                          </Button>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">{task.title}</p>
-                            {task.description ? (
-                              <p className="truncate text-xs text-muted-foreground">
-                                {task.description}
-                              </p>
+                      {category.tasks.map((task) => {
+                        const isActive = runningTaskId === task.id;
+                        return (
+                          <li key={task.id} className="flex items-center gap-3 px-3 py-2">
+                            {isActive ? (
+                              <Button
+                                size="icon"
+                                variant="destructive"
+                                aria-label={`Stop timer for ${task.title}`}
+                                disabled={stopTaskTimer.isPending}
+                                onClick={() => stopTaskTimer.mutate()}
+                              >
+                                <Square className="size-4" />
+                              </Button>
+                            ) : (
+                              <Button
+                                size="icon"
+                                variant="secondary"
+                                aria-label={`Start timer for ${task.title}`}
+                                disabled={startTaskTimer.isPending || Boolean(timerQuery.data)}
+                                onClick={() =>
+                                  startTaskTimer.mutate({
+                                    projectId: task.projectId,
+                                    categoryId: task.categoryId,
+                                    taskId: task.id,
+                                    description: task.title,
+                                  })
+                                }
+                              >
+                                <Play className="size-4" />
+                              </Button>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium">{task.title}</p>
+                              {task.description ? (
+                                <p className="truncate text-xs text-muted-foreground">
+                                  {task.description}
+                                </p>
+                              ) : null}
+                            </div>
+                            {task.dueOn ? (
+                              <Badge variant="outline">Due {task.dueOn}</Badge>
                             ) : null}
-                          </div>
-                          {task.dueOn ? (
-                            <Badge variant="outline">Due {task.dueOn}</Badge>
-                          ) : null}
-                          {!task.assigned ? <Badge variant="secondary">Unassigned</Badge> : null}
-                        </li>
-                      ))}
+                            {!task.assigned ? <Badge variant="secondary">Unassigned</Badge> : null}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 ))}
@@ -251,6 +248,24 @@ function DashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {cards.map((card) => (
+          <Card key={card.label}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {card.label}
+              </CardTitle>
+              <card.icon className="size-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-semibold">{card.value}</p>
+              <p className="text-xs text-muted-foreground">{card.hint}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
