@@ -33,6 +33,7 @@ export function TaskDialog({
   projects,
   categories,
   people,
+  lockedProjectId,
   onClose,
   onSaved,
 }: {
@@ -41,6 +42,7 @@ export function TaskDialog({
   projects: ProjectRow[];
   categories: CategoryRow[];
   people: OrgPerson[];
+  lockedProjectId?: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -59,12 +61,12 @@ export function TaskDialog({
     if (!value) return;
     setTitle(task?.title ?? "");
     setDescription(task?.description ?? "");
-    setProjectId(task?.projectId ?? "");
+    setProjectId(task?.projectId ?? lockedProjectId ?? "");
     setCategoryId(task?.categoryId ?? "");
     setDueOn(task?.dueOn ?? "");
     setStatus(task?.status ?? "open");
     setAssigneeIds(task?.assigneeIds ?? []);
-  }, [value, task]);
+  }, [value, task, lockedProjectId]);
 
   const projectCategories = categories.filter(
     (category) => category.projectId === projectId && category.isActive,
