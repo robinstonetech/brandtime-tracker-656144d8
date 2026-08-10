@@ -794,7 +794,6 @@ function ProjectDialog({
                       {client.name}
                     </SelectItem>
                   ))}
-                  {canManagePlaceholder(clients)}
                   <SelectItem value={NEW_CLIENT}>+ New client…</SelectItem>
                 </SelectContent>
               </Select>
