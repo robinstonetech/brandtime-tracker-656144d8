@@ -72,15 +72,29 @@ function DashboardPage() {
   };
 
   const startTaskTimer = useMutation({
-    mutationFn: (input: {
+    mutationFn: async (input: {
       projectId: string;
       categoryId: string;
       taskId: string;
       description: string;
-    }) => beginTimer({ data: { organizationId: organizationId!, ...input } }),
-    onSuccess: () => {
+    }) => {
+      let logged: number | null = null;
+      if (timerQuery.data) {
+        const stopped = await haltTimer({ data: { organizationId: organizationId! } });
+        logged = stopped.minutes;
+      }
+      await beginTimer({ data: { organizationId: organizationId!, ...input } });
+      return logged;
+    },
+    onSuccess: (logged) => {
       invalidateTimer();
-      toast.success("Timer started");
+      if (logged !== null) {
+        toast.success(
+          `Logged ${logged} minute${logged === 1 ? "" : "s"} · new timer started`,
+        );
+      } else {
+        toast.success("Timer started");
+      }
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -212,7 +226,7 @@ function DashboardPage() {
                                 size="icon"
                                 variant="secondary"
                                 aria-label={`Start timer for ${task.title}`}
-                                disabled={startTaskTimer.isPending || Boolean(timerQuery.data)}
+                                disabled={startTaskTimer.isPending || stopTaskTimer.isPending}
                                 onClick={() =>
                                   startTaskTimer.mutate({
                                     projectId: task.projectId,
