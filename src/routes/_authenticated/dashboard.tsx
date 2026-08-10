@@ -45,6 +45,8 @@ function DashboardPage() {
   const fetchDashboard = useServerFn(getDashboard);
   const fetchMyTasks = useServerFn(getMyTasks);
   const beginTimer = useServerFn(startTimer);
+  const fetchTimer = useServerFn(getRunningTimer);
+  const haltTimer = useServerFn(stopTimer);
   const dashboardQuery = useQuery({
     queryKey: ["dashboard", organizationId, weekStart],
     queryFn: () => fetchDashboard({ data: { organizationId: organizationId!, weekStart } }),
@@ -57,6 +59,18 @@ function DashboardPage() {
     enabled: Boolean(organizationId),
   });
 
+  const timerQuery = useQuery({
+    queryKey: ["timer", organizationId],
+    queryFn: () => fetchTimer({ data: { organizationId: organizationId! } }),
+    enabled: Boolean(organizationId),
+  });
+
+  const invalidateTimer = () => {
+    void queryClient.invalidateQueries({ queryKey: ["timer", organizationId] });
+    void queryClient.invalidateQueries({ queryKey: ["dashboard", organizationId] });
+    void queryClient.invalidateQueries({ queryKey: ["week", organizationId] });
+  };
+
   const startTaskTimer = useMutation({
     mutationFn: (input: {
       projectId: string;
@@ -65,11 +79,22 @@ function DashboardPage() {
       description: string;
     }) => beginTimer({ data: { organizationId: organizationId!, ...input } }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["timer", organizationId] });
+      invalidateTimer();
       toast.success("Timer started");
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const stopTaskTimer = useMutation({
+    mutationFn: () => haltTimer({ data: { organizationId: organizationId! } }),
+    onSuccess: (result) => {
+      invalidateTimer();
+      toast.success(`Logged ${result.minutes} minute${result.minutes === 1 ? "" : "s"}`);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const runningTaskId = timerQuery.data?.taskId ?? null;
 
   if (isLoading) {
     return (
