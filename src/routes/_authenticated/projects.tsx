@@ -871,10 +871,8 @@ function ProjectDialog({
   );
 }
 
-/** placeholder helper so the SelectContent stays valid even with no clients */
-function canManagePlaceholder(_clients: ClientRow[]) {
-  return null;
-}
+
+
 
 function ClientDialog({
   organizationId,
