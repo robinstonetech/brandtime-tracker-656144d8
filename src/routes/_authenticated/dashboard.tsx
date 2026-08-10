@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { CalendarClock, Clock, FolderKanban, Play, Users } from "lucide-react";
+import { CalendarClock, Clock, FolderKanban, Play, Square, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { getDashboard } from "@/lib/dashboard.functions";
 import { getMyTasks } from "@/lib/tasks.functions";
-import { startTimer } from "@/lib/time.functions";
+import { getRunningTimer, startTimer, stopTimer } from "@/lib/time.functions";
 import { currentWeekStartISO, formatDayLabel, formatMinutes, formatWeekRange } from "@/lib/time-utils";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
